@@ -1,6 +1,8 @@
-const CACHE_VERSION = "alpha2-pwa-v1";
-const SHELL_CACHE = `${CACHE_VERSION}-shell`;
-const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
+const CACHE_PREFIX = "alpha2-pwa-";
+const CACHE_VERSION = "v2";
+const SHELL_CACHE = `${CACHE_PREFIX}${CACHE_VERSION}-shell`;
+const RUNTIME_CACHE = `${CACHE_PREFIX}${CACHE_VERSION}-runtime`;
+const ACTIVE_CACHES = new Set([SHELL_CACHE, RUNTIME_CACHE]);
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -9,22 +11,34 @@ const APP_SHELL = [
   "./icons/icon-512.png"
 ];
 
+async function putIfCacheable(cacheName, request, response) {
+  if (!response || !response.ok || response.type === "opaque") return response;
+  const cache = await caches.open(cacheName);
+  await cache.put(request, response.clone());
+  return response;
+}
+
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(SHELL_CACHE)
-      .then((cache) => cache.addAll(APP_SHELL))
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(SHELL_CACHE);
+    await Promise.all(APP_SHELL.map(async (path) => {
+      const url = new URL(path, self.registration.scope).toString();
+      const response = await fetch(url, { cache: "reload" });
+      if (!response.ok) throw new Error(`Failed to precache ${url}`);
+      await cache.put(url, response);
+    }));
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(
-        keys.filter((key) => !key.startsWith(CACHE_VERSION)).map((key) => caches.delete(key))
-      ))
-      .then(() => self.clients.claim())
-  );
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys
+      .filter((key) => key.startsWith(CACHE_PREFIX) && !ACTIVE_CACHES.has(key))
+      .map((key) => caches.delete(key)));
+    await self.clients.claim();
+  })());
 });
 
 self.addEventListener("fetch", (event) => {
@@ -35,33 +49,20 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
   if (url.pathname.includes("/api/")) return;
 
-  if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          void caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, copy));
-          return response;
-        })
-        .catch(async () => {
-          const cached = await caches.match(request);
-          if (cached) return cached;
-          return caches.match(new URL("./index.html", self.registration.scope).toString());
-        })
-    );
-    return;
-  }
-
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      const network = fetch(request).then((response) => {
-        if (response.ok) {
-          const copy = response.clone();
-          void caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, copy));
-        }
-        return response;
+  event.respondWith((async () => {
+    try {
+      const response = await fetch(request, {
+        cache: request.mode === "navigate" ? "no-store" : "no-cache"
       });
-      return cached || network;
-    })
-  );
+      await putIfCacheable(RUNTIME_CACHE, request, response);
+      return response;
+    } catch {
+      const cached = await caches.match(request);
+      if (cached) return cached;
+      if (request.mode === "navigate") {
+        return caches.match(new URL("./index.html", self.registration.scope).toString());
+      }
+      throw new Error("Offline and no cached response available");
+    }
+  })());
 });
