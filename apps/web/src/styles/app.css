@@ -48,3 +48,16 @@ fieldset button.selected { border-color: #6f8ef4; background: #25345b; color: wh
 textarea { flex: 1; resize: vertical; min-height: 82px; padding: 12px; border-radius: 12px; border: 1px solid #34415f; background: #10182a; color: white; }
 textarea:focus, button:focus-visible, summary:focus-visible { outline: 2px solid #8aa4ff; outline-offset: 2px; }
 @media (max-width: 760px) { .topbar { flex-direction: column; } .status-stack { justify-content: flex-start; } .workspace { grid-template-columns: 1fr; } .sidebar { border-right: 0; border-bottom: 1px solid #26304a; } .composer-row { flex-direction: column; align-items: stretch; } .debug-grid { grid-template-columns: 1fr; } }
+
+.topbar-tools { display: grid; gap: 12px; justify-items: end; align-content: start; }
+.language-picker { position: relative; display: grid; grid-template-columns: auto auto minmax(110px, auto); align-items: center; gap: 9px; min-height: 44px; padding: 6px 34px 6px 8px; border: 1px solid #3b4b70; border-radius: 14px; background: linear-gradient(135deg, #17233d, #111a2f); box-shadow: 0 10px 28px rgba(0, 0, 0, .22), inset 0 1px rgba(255, 255, 255, .04); }
+.language-picker::after { content: "⌄"; position: absolute; right: 12px; top: 50%; transform: translateY(-56%); color: #9fb5e6; pointer-events: none; font-size: 16px; }
+.language-icon { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; background: #25365f; color: #bcd0ff; font-weight: 900; font-size: 18px; }
+.language-label { color: #92a7cf; font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.language-picker select { width: 100%; appearance: none; border: 0; outline: 0; background: transparent; color: #eef4ff; padding: 6px 0; cursor: pointer; font: inherit; font-weight: 750; }
+.language-picker select option { background: #11182b; color: #eef4ff; }
+.language-picker:focus-within { border-color: #7592f3; box-shadow: 0 0 0 3px rgba(117, 146, 243, .16), 0 10px 28px rgba(0, 0, 0, .22); }
+@media (max-width: 760px) {
+  .topbar-tools { justify-items: stretch; }
+  .language-picker { width: min(100%, 360px); grid-template-columns: auto auto minmax(120px, 1fr); }
+}
