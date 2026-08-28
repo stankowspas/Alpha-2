@@ -1,0 +1,19 @@
+{
+  "name": "@alpha/ai-core",
+  "version": "1.0.0-alpha.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "dependencies": {
+    "@alpha/completion": "*",
+    "@alpha/context": "*",
+    "@alpha/finalization": "*",
+    "@alpha/models": "*",
+    "@alpha/reasoning": "*",
+    "@alpha/state": "*",
+    "@alpha/task-engine": "*",
+    "@alpha/task-execution": "*",
+    "@alpha/task-executors": "*",
+    "@alpha/task-verification": "*"
+  }
+}

@@ -1,0 +1,81 @@
+{
+    "taskId":  "A2-002",
+    "title":  "Free-only AI backend with real g4f Gemini provider",
+    "status":  "COMPLETE",
+    "createdAt":  "2026-08-26T14:43:03.7246863+03:00",
+    "completedAt":  "2026-08-26T14:43:03.7246863+03:00",
+    "architectureSections":  [
+                                 "4",
+                                 "5",
+                                 "5.1",
+                                 "16",
+                                 "17",
+                                 "20"
+                             ],
+    "changedFiles":  [
+                         "server/ai/alpha_ai/app.py",
+                         "server/ai/alpha_ai/g4f_gemini.py",
+                         "server/ai/alpha_ai/policy.py",
+                         "server/ai/alpha_ai/provider.py",
+                         "server/ai/alpha_ai/schemas.py",
+                         "server/ai/alpha_ai/service.py",
+                         "server/ai/alpha_ai/sse.py",
+                         "server/ai/tests/test_api.py",
+                         "server/ai/tests/test_policy.py",
+                         "server/ai/tests/test_g4f_provider.py",
+                         "server/ai/pyproject.toml",
+                         "server/ai/requirements-provider.txt",
+                         "server/ai/README.md"
+                     ],
+    "gates":  {
+                  "programmed":  {
+                                     "status":  "PASS",
+                                     "evidence":  [
+                                                      "Free-only FastAPI backend implemented",
+                                                      "G4FGeminiProvider implemented",
+                                                      "SSE, cancel, allowlist, fallback and CORS implemented"
+                                                  ]
+                                 },
+                  "tested":  {
+                                 "status":  "PASS",
+                                 "evidence":  [
+                                                  "python -m compileall: exit 0",
+                                                  "pytest: 14 passed, 0 failed",
+                                                  "TLS profile tests: CERT_REQUIRED + hostname verification"
+                                              ]
+                             },
+                  "verified":  {
+                                   "status":  "PASS",
+                                   "evidence":  [
+                                                    "No paid model path",
+                                                    "Requested/actual model metadata present",
+                                                    "Unknown model denied by allowlist",
+                                                    "Idle-stream and first-token timeout behavior tested"
+                                                ]
+                               },
+                  "realEnvTested":  {
+                                        "status":  "PASS",
+                                        "evidence":  [
+                                                         "GET /health: provider g4f-gemini, free_only=true",
+                                                         "GET /v1/models: gemini-3.6-flash and gemini-3.5-flash AVAILABLE",
+                                                         "POST /v1/chat/stream real gemini-3.6-flash returned ALPHA2_API_OK and done",
+                                                         "Real fallback to gemini-3.5-flash returned ALPHA2_FALLBACK_OK with fallbackUsed=true",
+                                                         "Real cancel returned HTTP 200; stream ended without done; no server exception"
+                                                     ]
+                                    }
+              },
+    "runtime":  {
+                    "provider":  "g4f-gemini",
+                    "g4fVersion":  "8.1.7",
+                    "requestedModel":  "gemini-3.6-flash",
+                    "actualModel":  "gemini-3.6-flash",
+                    "fallbackModelVerified":  "gemini-3.5-flash",
+                    "freeOnly":  true,
+                    "tlsCertificateVerification":  true,
+                    "hostnameVerification":  true
+                },
+    "notes":  [
+                  "Starlette TestClient emitted one deprecation warning about future httpx2; no functional test failure.",
+                  "Python 3.13 VERIFY_X509_STRICT is disabled for this provider path while CERT_REQUIRED and hostname verification remain enabled."
+              ]
+}

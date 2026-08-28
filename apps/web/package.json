@@ -1,0 +1,19 @@
+{
+  "name": "@alpha/web",
+  "version": "2.0.0-alpha.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5173",
+    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.json --pretty false"
+  },
+  "dependencies": {
+    "@alpha/ai-core": "*",
+    "@alpha/memory": "*",
+    "@alpha/models": "*",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "@alpha/branding": "*"
+  }
+}

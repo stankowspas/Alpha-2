@@ -1,0 +1,12 @@
+{
+  "name": "@alpha/citations",
+  "version": "1.0.0-alpha.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "dependencies": {
+    "@alpha/retrieval": "*",
+    "@alpha/task-engine": "*",
+    "@alpha/verification": "*"
+  }
+}

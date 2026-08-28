@@ -1,0 +1,15 @@
+{
+  "name": "@alpha/search-server",
+  "version": "1.0.0-alpha.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json --pretty false"
+  },
+  "dependencies": {
+    "@alpha/retrieval": "*",
+    "@alpha/source-token": "*"
+  }
+}

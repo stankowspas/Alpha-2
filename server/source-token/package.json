@@ -1,0 +1,10 @@
+{
+  "name": "@alpha/source-token",
+  "version": "1.0.0-alpha.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json --pretty false"
+  }
+}

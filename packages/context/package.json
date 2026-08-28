@@ -1,0 +1,13 @@
+{
+  "name": "@alpha/context",
+  "version": "1.0.0-alpha.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "dependencies": {
+    "@alpha/memory": "*",
+    "@alpha/reasoning": "*",
+    "@alpha/retrieval": "*",
+    "@alpha/task-execution": "*"
+  }
+}
