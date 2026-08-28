@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Reset Alpha 2 PWA</title></head>
+<body>
+<p>Resetting Alpha 2 PWA cache…</p>
+<script>
+(async () => {
+  const prefix = 'alpha2-pwa-';
+  const keys = await caches.keys();
+  await Promise.all(keys.filter((key) => key.startsWith(prefix)).map((key) => caches.delete(key)));
+
+  if ('serviceWorker' in navigator) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(
+      registrations
+        .filter((registration) => registration.scope.includes('/Alpha-2/'))
+        .map((registration) => registration.unregister())
+    );
+  }
+
+  location.replace('./?cacheReset=' + Date.now());
+})().catch((error) => {
+  document.body.textContent = 'Alpha 2 cache reset failed: ' + error;
+});
+</script>
+</body>
+</html>
