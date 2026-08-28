@@ -8,6 +8,7 @@ import {
 import { PRODUCT_BRANDING } from "@alpha/branding";
 import { listConversationMessages, saveConversationMessage, type ConversationMessage } from "@alpha/memory";
 import { RemoteGeminiModelAdapter, type ModelGenerationMetadata } from "@alpha/models";
+import { getInitialLocale, persistLocale, UI_LANGUAGES, UI_MESSAGES, type UiLocale } from "../i18n";
 
 const depths: ResponseDepth[] = ["LOW", "MEDIUM", "HIGH"];
 const modes: ChatMode[] = ["FAST", "THINKING"];
@@ -36,6 +37,8 @@ export function App() {
   }), []);
   const core = useMemo(() => new ApplicationCore(model), [model]);
   const abortRef = useRef<AbortController | null>(null);
+  const [locale, setLocale] = useState<UiLocale>(getInitialLocale);
+  const t = UI_MESSAGES[locale];
   const [depth, setDepth] = useState<ResponseDepth>("MEDIUM");
   const [mode, setMode] = useState<ChatMode>("FAST");
   const [input, setInput] = useState("");
@@ -48,7 +51,10 @@ export function App() {
   const [modelRuntime, setModelRuntime] = useState<ModelGenerationMetadata | null>(null);
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [notice, setNotice] = useState(AI_ENDPOINT ? "Свържи Alpha 2 с безплатния AI backend." : "PWA е готова, но production AI backend не е конфигуриран.");
+  const [notice, setNotice] = useState(() => {
+    const initial = UI_MESSAGES[getInitialLocale()];
+    return AI_ENDPOINT ? initial.connectPrompt : initial.productionMissing;
+  });
   const [developerMode, setDeveloperMode] = useState(true);
   const [taskDebug, setTaskDebug] = useState<TaskDebugState | null>(null);
 
@@ -56,23 +62,27 @@ export function App() {
     void listConversationMessages(CONVERSATION_ID).then(setHistory).catch(() => undefined);
   }, []);
 
+  useEffect(() => {
+    persistLocale(locale);
+  }, [locale]);
+
   async function loadModel() {
     if (!AI_ENDPOINT) {
-      setNotice("Липсва VITE_AI_ENDPOINT за production PWA.");
+      setNotice(t.missingEndpoint);
       return;
     }
     if (loadingModel || modelLoaded) return;
     setLoadingModel(true);
-    setNotice("Проверка на Alpha 2 AI backend...");
+    setNotice(t.checkingBackend);
     try {
       await core.loadModel((value, text) => {
         setProgress(Math.round(value * 100));
         setNotice(text);
       });
       setModelLoaded(true);
-      setNotice("Безплатният Gemini backend е готов.");
+      setNotice(t.freeBackendReady);
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "AI backend не може да бъде зареден.");
+      setNotice(error instanceof Error ? error.message : t.backendLoadFailed);
     } finally {
       setLoadingModel(false);
     }
@@ -89,7 +99,7 @@ export function App() {
     setCitations([]);
     setTaskDebug(null);
     setGenerating(true);
-    setNotice(mode === "THINKING" ? "Thinking..." : "Генериране...");
+    setNotice(mode === "THINKING" ? `${t.thinkingMode}...` : t.generating);
     const controller = new AbortController();
     abortRef.current = controller;
 
@@ -124,7 +134,7 @@ export function App() {
         setAnswer("");
         setThinking("");
         setCitations([]);
-        setNotice(`Отговорът е блокиран от execution/verification gate: ${result.failureReason ?? "непотвърден резултат"}`);
+        setNotice(`${t.blockedPrefix}: ${result.failureReason ?? t.unverifiedResult}`);
         return;
       }
 
@@ -149,10 +159,10 @@ export function App() {
       };
       await saveConversationMessage(assistantMessage);
       setHistory((current) => [...current, assistantMessage]);
-      setNotice("TASK_COMPLETE — отговорът премина приложимите final gates.");
+      setNotice(t.taskComplete);
     } catch (error) {
-      if (controller.signal.aborted) setNotice("Генерирането е спряно.");
-      else setNotice(error instanceof Error ? error.message : "Inference/execution грешка.");
+      if (controller.signal.aborted) setNotice(t.generationStopped);
+      else setNotice(error instanceof Error ? error.message : t.inferenceError);
     } finally {
       setGenerating(false);
       abortRef.current = null;
@@ -165,77 +175,86 @@ export function App() {
     <main className="app-shell">
       <header className="topbar">
         <div><p className="eyebrow">{PRODUCT_BRANDING.version}</p><h1>{PRODUCT_BRANDING.officialName}</h1><p className="subtitle">Developed by {PRODUCT_BRANDING.developer}</p></div>
-        <div className="status-stack" aria-live="polite">
-          <span className={modelLoaded ? "status ok" : "status warn"}>AI backend: {modelLoaded ? "готов" : "не е свързан"}</span>
-          <span className={modelRuntime ? "status ok" : "status warn"}>Model: {modelRuntime?.actualModel ?? "не е избран"}{modelRuntime?.fallbackUsed ? " (fallback)" : ""}</span>
+        <div className="topbar-tools">
+          <label className="language-picker">
+            <span className="language-icon" aria-hidden="true">◎</span>
+            <span className="language-label">{t.language}</span>
+            <select value={locale} onChange={(event) => setLocale(event.target.value as UiLocale)} aria-label={t.language}>
+              {UI_LANGUAGES.map((language) => <option key={language.code} value={language.code}>{language.label}</option>)}
+            </select>
+          </label>
+          <div className="status-stack" aria-live="polite">
+            <span className={modelLoaded ? "status ok" : "status warn"}>{t.aiBackend}: {modelLoaded ? t.ready : t.disconnected}</span>
+            <span className={modelRuntime ? "status ok" : "status warn"}>{t.model}: {modelRuntime?.actualModel ?? t.notSelected}{modelRuntime?.fallbackUsed ? " (fallback)" : ""}</span>
+          </div>
         </div>
       </header>
 
       <section className="workspace">
-        <aside className="sidebar" aria-label="Разговори">
-          <button type="button" className="primary">+ Нов чат</button>
-          <p className="muted">Локално записани съобщения: {history.length}</p>
-          <div className="diagnostic"><strong>Provider</strong><span>{modelRuntime?.provider ?? "g4f-gemini / free-only"}</span></div>
+        <aside className="sidebar" aria-label={t.conversations}>
+          <button type="button" className="primary">{t.newChat}</button>
+          <p className="muted">{t.savedMessages}: {history.length}</p>
+          <div className="diagnostic"><strong>{t.provider}</strong><span>{modelRuntime?.provider ?? "g4f-gemini / free-only"}</span></div>
           <div className="diagnostic">
-            <strong>Developer Mode</strong>
+            <strong>{t.developerMode}</strong>
             <button type="button" className="secondary" onClick={() => setDeveloperMode((value) => !value)}>
-              {developerMode ? "Изключи" : "Включи"}
+              {developerMode ? t.disable : t.enable}
             </button>
           </div>
         </aside>
         <section className="chat-panel">
           <div className="empty-state">
             <h2>Alpha Chat 2.0</h2>
-            <p>Inference се изпълнява през локалния Alpha AI backend и разрешени безплатни Gemini модели. Няма локален model inference.</p>
+            <p>{t.intro}</p>
             <button type="button" className="primary" onClick={loadModel} disabled={loadingModel || modelLoaded}>
-              {modelLoaded ? "AI backend е готов" : loadingModel ? `Проверка ${progress}%` : "Свържи AI backend"}
+              {modelLoaded ? t.backendReady : loadingModel ? `${t.checking} ${progress}%` : t.connectBackend}
             </button>
           </div>
 
-          <div className="control-row"><fieldset><legend>Режим</legend>{modes.map((item) => <button key={item} type="button" className={mode === item ? "selected" : ""} onClick={() => setMode(item)}>{item === "FAST" ? "Fast" : "Thinking"}</button>)}</fieldset><fieldset><legend>Ниво на отговор</legend>{depths.map((item) => <button key={item} type="button" className={depth === item ? "selected" : ""} onClick={() => setDepth(item)}>{item}</button>)}</fieldset></div>
+          <div className="control-row"><fieldset><legend>{t.mode}</legend>{modes.map((item) => <button key={item} type="button" className={mode === item ? "selected" : ""} onClick={() => setMode(item)}>{item === "FAST" ? t.fast : t.thinkingMode}</button>)}</fieldset><fieldset><legend>{t.responseLevel}</legend>{depths.map((item) => <button key={item} type="button" className={depth === item ? "selected" : ""} onClick={() => setDepth(item)}>{item}</button>)}</fieldset></div>
 
           <p className="notice" aria-live="polite">{notice}</p>
 
           {developerMode && taskDebug && (
             <details className="answer debug-panel" open>
-              <summary>Developer — Task Engine</summary>
+              <summary>{t.developerTaskEngine}</summary>
               <div className="debug-grid">
-                <div><strong>Publishable</strong><span>{taskDebug.publishable ? "yes" : "no"}</span></div>
-                <div><strong>Finalization</strong><span>{taskDebug.finalizationStatus ?? "not reached"}</span></div>
-                <div><strong>Citations</strong><span>{taskDebug.citationCount}</span></div>
-                <div><strong>Task ID</strong><span>{taskDebug.plan.taskId}</span></div>
-                <div><strong>Task status</strong><span>{taskDebug.plan.status}</span></div>
-                <div><strong>Steps</strong><span>{taskDebug.plan.steps.length}</span></div>
+                <div><strong>{t.publishable}</strong><span>{taskDebug.publishable ? "yes" : "no"}</span></div>
+                <div><strong>{t.finalization}</strong><span>{taskDebug.finalizationStatus ?? "not reached"}</span></div>
+                <div><strong>{t.citations}</strong><span>{taskDebug.citationCount}</span></div>
+                <div><strong>{t.taskId}</strong><span>{taskDebug.plan.taskId}</span></div>
+                <div><strong>{t.taskStatus}</strong><span>{taskDebug.plan.status}</span></div>
+                <div><strong>{t.steps}</strong><span>{taskDebug.plan.steps.length}</span></div>
               </div>
-              {taskDebug.failureReason && <div className="debug-block"><strong>Blocked reason</strong><p>{taskDebug.failureReason}</p></div>}
+              {taskDebug.failureReason && <div className="debug-block"><strong>{t.blockedReason}</strong><p>{taskDebug.failureReason}</p></div>}
               {taskDebug.plan.constraints && taskDebug.plan.constraints.length > 0 && (
-                <div className="debug-block"><strong>Hard constraints</strong><ul>{taskDebug.plan.constraints.map((constraint) => <li key={constraint}>{constraint}</li>)}</ul></div>
+                <div className="debug-block"><strong>{t.hardConstraints}</strong><ul>{taskDebug.plan.constraints.map((constraint) => <li key={constraint}>{constraint}</li>)}</ul></div>
               )}
               <div className="debug-block">
-                <strong>Task plan</strong>
-                <ol>{taskDebug.plan.steps.map((step) => <li key={step.id}><code>{step.id}</code> — {step.goal} <span className="muted">[{step.kind}; {step.status}; depends: {step.dependsOn.length ? step.dependsOn.join(", ") : "none"}]</span></li>)}</ol>
+                <strong>{t.taskPlan}</strong>
+                <ol>{taskDebug.plan.steps.map((step) => <li key={step.id}><code>{step.id}</code> — {step.goal} <span className="muted">[{step.kind}; {step.status}; depends: {step.dependsOn.length ? step.dependsOn.join(", ") : t.none}]</span></li>)}</ol>
               </div>
-              <p className="muted">GENERATION_COMPLETE не означава STEP_COMPLETE. User-visible отговор се пази само след Completion/Finalization gates.</p>
+              <p className="muted">{t.generationNote}</p>
             </details>
           )}
 
-          {thinking && <details className="answer thinking" open={generating}><summary>Мислене / Анализ</summary><pre>{thinking}</pre></details>}
-          {answer && <article className="answer" aria-live="polite"><h3>Отговор</h3><pre>{answer}</pre></article>}
+          {thinking && <details className="answer thinking" open={generating}><summary>{t.thinkingAnalysis}</summary><pre>{thinking}</pre></details>}
+          {answer && <article className="answer" aria-live="polite"><h3>{t.answer}</h3><pre>{answer}</pre></article>}
           {citations.length > 0 && (
-            <section className="answer" aria-label="Източници">
-              <h3>Източници</h3>
+            <section className="answer" aria-label={t.sources}>
+              <h3>{t.sources}</h3>
               <ol>
                 {citations.map((citation) => (
                   <li key={citation.citationId}>
                     <a href={citation.canonicalUrl} target="_blank" rel="noreferrer">{citation.sourceTitle}</a>
-                    <div className="muted">Подкрепя: {citation.claimText}</div>
+                    <div className="muted">{t.supports}: {citation.claimText}</div>
                   </li>
                 ))}
               </ol>
             </section>
           )}
 
-          <form className="composer" onSubmit={onSubmit}><label htmlFor="message">Съобщение</label><div className="composer-row"><textarea id="message" value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} placeholder="Напиши съобщение..." rows={3} disabled={!modelLoaded || generating} />{generating ? <button type="button" className="secondary" onClick={stopGeneration}>Стоп</button> : <button type="submit" className="primary" disabled={!modelLoaded}>Изпрати</button>}</div></form>
+          <form className="composer" onSubmit={onSubmit}><label htmlFor="message">{t.message}</label><div className="composer-row"><textarea id="message" value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} placeholder={t.placeholder} rows={3} disabled={!modelLoaded || generating} />{generating ? <button type="button" className="secondary" onClick={stopGeneration}>{t.stop}</button> : <button type="submit" className="primary" disabled={!modelLoaded}>{t.send}</button>}</div></form>
         </section>
       </section>
     </main>
