@@ -1,3 +1,0 @@
-# Provider dependency is separated from the tested backend skeleton.
-# Pin is verified in the real-environment phase before release.
-g4f==8.1.7

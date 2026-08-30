@@ -44,12 +44,13 @@ class UnconfiguredProvider:
 
 
 def resolve_provider() -> FreeAIProvider:
-    mode = os.getenv("ALPHA_AI_PROVIDER", "unconfigured").strip().lower()
+    default_mode = "gemini-api" if os.getenv("GEMINI_API_KEY", "").strip() else "unconfigured"
+    mode = os.getenv("ALPHA_AI_PROVIDER", default_mode).strip().lower()
     if mode in {"", "unconfigured"}:
         return UnconfiguredProvider()
-    if mode == "g4f-gemini":
-        from .g4f_gemini import G4FGeminiProvider
-        return G4FGeminiProvider()
+    if mode == "gemini-api":
+        from .gemini_api import GeminiApiProvider
+        return GeminiApiProvider()
     raise RuntimeError(f"Unsupported ALPHA_AI_PROVIDER: {mode}")
 
 
@@ -58,6 +59,7 @@ def allowed_origins() -> tuple[str, ...]:
     if not raw:
         return DEFAULT_ALLOWED_ORIGINS
     return tuple(item.strip() for item in raw.split(",") if item.strip())
+
 
 def create_app(provider: FreeAIProvider | None = None) -> FastAPI:
     provider = provider or resolve_provider()
@@ -94,6 +96,12 @@ def create_app(provider: FreeAIProvider | None = None) -> FastAPI:
             provider=provider.provider_id,
             provider_available=available,
         )
+
+    @app.get("/ready")
+    async def ready() -> dict:
+        if not await provider.health():
+            raise HTTPException(status_code=503, detail="AI provider is not configured")
+        return {"status": "ok", "provider": provider.provider_id}
 
     @app.get("/v1/models", response_model=list[ModelDescriptor])
     async def models() -> list[ModelDescriptor]:

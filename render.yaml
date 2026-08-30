@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: alpha-2-api
+    runtime: python
+    plan: free
+    branch: main
+    rootDir: server/ai
+    buildCommand: pip install -e .
+    startCommand: uvicorn alpha_ai.app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /ready
+    envVars:
+      - key: ALPHA_AI_PROVIDER
+        value: gemini-api
+      - key: ALPHA_ALLOWED_ORIGINS
+        value: https://stankowspas.github.io
+      - key: ALPHA_AI_FIRST_TOKEN_TIMEOUT
+        value: "60"
+      - key: ALPHA_AI_IDLE_TIMEOUT
+        value: "20"
+      - key: GEMINI_API_KEY
+        sync: false
