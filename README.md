@@ -4,61 +4,58 @@
 **Developed by:** Spas Stankov  
 **Status:** internal Alpha development
 
-Alpha Chat 2.0 is a local web application that uses a local Alpha AI backend as a gateway to approved free-only Gemini-compatible models.
+Alpha Chat 2.0 is a browser-first PWA. The active chat path calls the official Gemini API directly from the user's browser; there is no production Alpha AI HTTP server.
 
 ## Current runtime
 
 - Web UI: React + TypeScript + Vite.
-- AI backend: local HTTP service on `127.0.0.1:5177`.
-- Provider policy: `g4f-gemini`, `free_only=true`.
-- Primary runtime model is reported dynamically by the backend.
+- AI runtime: `BrowserGeminiModelAdapter` inside the browser.
+- Provider: official Google Gemini API over HTTPS/SSE.
+- Primary model: `gemini-3.6-flash`; fallback: `gemini-3.5-flash`.
 - Conversation history is stored locally.
 - FAST / THINKING modes and LOW / MEDIUM / HIGH response depth are supported.
 
-## Current ApplicationCore invariant
+## ApplicationCore invariant
 
-Every user request becomes exactly one `MODEL` step.
+Every user request becomes exactly one `MODEL` step:
 
 ```text
 User request
   -> normalize
   -> one MODEL step
+  -> browser Gemini runtime
   -> execution verification
   -> completion
   -> finalization
   -> user-visible answer
 ```
 
-There is no automatic request Router, no SIMPLE/COMPLEX classifier, no regex capability selector, and no automatic choice of Search, Weather, Time or Calculator inside `ApplicationCore`.
+There is no automatic request Router, SIMPLE/COMPLEX classifier, regex capability selector, or automatic Search/Weather/Time/Calculator selection inside `ApplicationCore`.
 
-The repository still contains lower-level tool, search, retrieval, weather and verification modules. They are libraries/services only; the current `ApplicationCore` does not select or execute them automatically.
+## Browser API key model
 
-## Execution invariants
+The production Pages workflow exposes the GitHub Actions secret `GEMINI_API_KEY` to Vite as `VITE_GEMINI_API_KEY` during the build. Because Vite variables are compiled into client JavaScript, this value is visible to users of the site by design.
 
-- `GENERATION_COMPLETE` is not treated as `STEP_COMPLETE`.
-- A user-visible answer is published only after execution, completion and finalization pass.
-- The immutable Original Goal remains attached to the task plan.
-- Hard constraints are preserved by request normalization.
-- The active core does not infer a route category from user wording.
-- The active core does not make outbound Search/Fetch/Weather calls.
-- Current `requiresVap` policy in `ApplicationCore` is `false` because no evidence route is active.
+For this architecture, restrict the key at the Google side to the intended web origin and the Gemini/Generative Language API, and apply quotas. Do not treat this key as a private server credential.
 
-## Local services
+## Local development
 
-The repository contains Search (`5174`) and Fetch (`5175`) services from earlier development. They may be run independently for development/testing, but they are not part of the active automatic chat path.
+Create `.env.local` with:
 
-## Start
+```bash
+VITE_GEMINI_API_KEY=your-key
+```
+
+Then run:
 
 ```bash
 npm install
 npm run dev:web
 ```
 
-AI backend is started separately from `server/ai` on port `5177`.
+Search (`5174`) and Fetch (`5175`) development services remain separate support services and are not part of the active automatic chat path.
 
 ## Validation
-
-Use:
 
 ```bash
 npm run typecheck
@@ -68,20 +65,10 @@ npm run build
 
 ## PWA / GitHub Pages
 
-The web client is PWA-ready. Production builds register `apps/web/public/sw.js`,
-use `manifest.webmanifest`, and cache only the same-origin application shell/static assets.
-AI/API traffic is not cached by the service worker.
+Production deployment is static:
 
-For GitHub Pages project hosting, build with:
-
-```bash
-VITE_BASE_PATH=/Alpha-2/ npm run build
+```text
+GitHub Pages -> Alpha 2 PWA -> Gemini API
 ```
 
-The Pages workflow reads the public AI backend URL from the repository variable
-`VITE_AI_ENDPOINT`. Local development still defaults to `http://127.0.0.1:5177`.
-Production intentionally has no localhost fallback; without `VITE_AI_ENDPOINT`,
-the UI reports that the hosted AI backend is not configured.
-
-GitHub Pages hosts only the PWA frontend. The Python/Gemini backend must be deployed
-separately behind HTTPS and configured to allow the Pages origin via CORS.
+There is no `VITE_AI_ENDPOINT`, no production Python AI backend, and no Render deployment requirement.
