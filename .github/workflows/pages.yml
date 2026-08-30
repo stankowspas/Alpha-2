@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       VITE_BASE_PATH: /Alpha-2/
-      VITE_AI_ENDPOINT: ${{ vars.VITE_AI_ENDPOINT }}
+      VITE_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
