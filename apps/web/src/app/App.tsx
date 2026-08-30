@@ -7,14 +7,13 @@ import {
 } from "@alpha/ai-core";
 import { PRODUCT_BRANDING } from "@alpha/branding";
 import { listConversationMessages, saveConversationMessage, type ConversationMessage } from "@alpha/memory";
-import { RemoteGeminiModelAdapter, type ModelGenerationMetadata } from "@alpha/models";
+import { BrowserGeminiModelAdapter, type ModelGenerationMetadata } from "@alpha/models";
 import { getInitialLocale, persistLocale, UI_LANGUAGES, UI_MESSAGES, type UiLocale } from "../i18n";
 
 const depths: ResponseDepth[] = ["LOW", "MEDIUM", "HIGH"];
 const modes: ChatMode[] = ["FAST", "THINKING"];
 const CONVERSATION_ID = "alpha-default";
-const DEV_AI_ENDPOINT = "http://127.0.0.1:5177";
-const AI_ENDPOINT = (import.meta.env.VITE_AI_ENDPOINT || (import.meta.env.DEV ? DEV_AI_ENDPOINT : "")).replace(/\/$/, "");
+const GEMINI_API_KEY = (import.meta.env.VITE_GEMINI_API_KEY || "").trim();
 
 interface TaskDebugState {
   plan: TaskPlan;
@@ -32,9 +31,7 @@ interface UiCitation {
 }
 
 export function App() {
-  const model = useMemo(() => new RemoteGeminiModelAdapter({
-    baseUrl: AI_ENDPOINT || window.location.origin
-  }), []);
+  const model = useMemo(() => new BrowserGeminiModelAdapter({ apiKey: GEMINI_API_KEY }), []);
   const core = useMemo(() => new ApplicationCore(model), [model]);
   const abortRef = useRef<AbortController | null>(null);
   const [locale, setLocale] = useState<UiLocale>(getInitialLocale);
@@ -53,7 +50,7 @@ export function App() {
   const [progress, setProgress] = useState(0);
   const [notice, setNotice] = useState(() => {
     const initial = UI_MESSAGES[getInitialLocale()];
-    return AI_ENDPOINT ? initial.connectPrompt : initial.productionMissing;
+    return GEMINI_API_KEY ? initial.connectPrompt : initial.productionMissing;
   });
   const [developerMode, setDeveloperMode] = useState(true);
   const [taskDebug, setTaskDebug] = useState<TaskDebugState | null>(null);
@@ -67,7 +64,7 @@ export function App() {
   }, [locale]);
 
   async function loadModel() {
-    if (!AI_ENDPOINT) {
+    if (!GEMINI_API_KEY) {
       setNotice(t.missingEndpoint);
       return;
     }
@@ -138,8 +135,6 @@ export function App() {
         return;
       }
 
-      // Finalized result is the source of truth. This also renders deterministic
-      // Direct execution result remains the source of truth after finalization.
       setAnswer(result.answer);
       setThinking(result.thinking);
       setCitations(finalizedCitations.map((citation) => ({
@@ -194,7 +189,7 @@ export function App() {
         <aside className="sidebar" aria-label={t.conversations}>
           <button type="button" className="primary">{t.newChat}</button>
           <p className="muted">{t.savedMessages}: {history.length}</p>
-          <div className="diagnostic"><strong>{t.provider}</strong><span>{modelRuntime?.provider ?? "g4f-gemini / free-only"}</span></div>
+          <div className="diagnostic"><strong>{t.provider}</strong><span>{modelRuntime?.provider ?? "gemini-api-browser"}</span></div>
           <div className="diagnostic">
             <strong>{t.developerMode}</strong>
             <button type="button" className="secondary" onClick={() => setDeveloperMode((value) => !value)}>
