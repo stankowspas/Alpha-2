@@ -1,7 +1,7 @@
 import { pipeline } from "@huggingface/transformers";
 import type { GenerationInput, ModelAdapter, ModelCapabilities, ModelGenerationMetadata } from "./index";
 
-const MODEL_ID = "HuggingFaceTB/SmolLM3-3B-ONNX";
+const MODEL_ID = "onnx-community/SmolLM2-360M-Instruct-ONNX";
 
 type GeneratedMessage = { role?: unknown; content?: unknown };
 type GenerationCandidate = { generated_text?: unknown };
@@ -50,12 +50,12 @@ function formatMiB(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(bytes >= 100 * 1024 * 1024 ? 0 : 1)} MB`;
 }
 
-export class SmolLM3WebGpuAdapter implements ModelAdapter {
+export class SmolLM2WebGpuAdapter implements ModelAdapter {
   readonly capabilities: ModelCapabilities = {
-    maxContext: 64_000,
-    thinkingSupport: true,
-    structuredOutputSupport: true,
-    toolCallSupport: true,
+    maxContext: 8_192,
+    thinkingSupport: false,
+    structuredOutputSupport: false,
+    toolCallSupport: false,
     stopTokens: ["<|im_end|>", "<|endoftext|>"],
     modelId: MODEL_ID
   };
@@ -66,20 +66,15 @@ export class SmolLM3WebGpuAdapter implements ModelAdapter {
 
   async load(onProgress?: (progress: number, text: string) => void): Promise<void> {
     if (this.loaded) {
-      onProgress?.(1, "SmolLM3-3B е готов.");
+      onProgress?.(1, "SmolLM2-360M е готов.");
       return;
     }
     if (typeof navigator === "undefined" || !("gpu" in navigator)) {
-      throw new Error("WEBGPU_NOT_AVAILABLE: SmolLM3 requires a WebGPU-capable browser.");
+      throw new Error("WEBGPU_NOT_AVAILABLE: SmolLM2 requires a WebGPU-capable browser.");
     }
 
-    // Transformers.js v4 emits progress_total with the actual aggregate
-    // loaded/total bytes for all required pipeline files. Do not derive an
-    // overall percentage from per-file events: files are discovered over time
-    // and doing so can incorrectly report 100% while a later large file is
-    // still downloading.
     let totalProgress = 0;
-    onProgress?.(0, "Подготовка на SmolLM3-3B…");
+    onProgress?.(0, "Подготовка на SmolLM2-360M…");
 
     const created = await pipeline("text-generation", MODEL_ID, {
       dtype: "q4f16",
@@ -95,7 +90,6 @@ export class SmolLM3WebGpuAdapter implements ModelAdapter {
           const loaded = safeNumber(event.loaded);
           const total = safeNumber(event.total);
           if (progress !== undefined) totalProgress = Math.max(totalProgress, Math.min(progress, 0.99));
-
           const detail = loaded !== undefined && total !== undefined && total > 0
             ? `Общо: ${formatMiB(loaded)} / ${formatMiB(total)}`
             : "Теглене на файловете на модела…";
@@ -115,32 +109,23 @@ export class SmolLM3WebGpuAdapter implements ModelAdapter {
           return;
         }
 
-        if (status === "download" && file) {
-          onProgress?.(totalProgress, `Теглене: ${humanFileName(file)}`);
-          return;
-        }
-        if (status === "initiate") {
-          onProgress?.(totalProgress, "Подготовка на файловете…");
-          return;
-        }
-        if (status === "ready") {
-          onProgress?.(Math.max(totalProgress, 0.99), "Инициализиране на модела в WebGPU…");
-        }
+        if (status === "download" && file) onProgress?.(totalProgress, `Теглене: ${humanFileName(file)}`);
+        else if (status === "initiate") onProgress?.(totalProgress, "Подготовка на файловете…");
+        else if (status === "ready") onProgress?.(Math.max(totalProgress, 0.99), "Инициализиране на модела в WebGPU…");
       }
     });
 
     this.#generator = created as unknown as Generator;
     this.loaded = true;
-    onProgress?.(1, "SmolLM3-3B е готов.");
+    onProgress?.(1, "SmolLM2-360M е готов.");
   }
 
   async *generate(input: GenerationInput): AsyncIterable<string> {
-    if (!this.#generator || !this.loaded) throw new Error("MODEL_NOT_LOADED: SmolLM3-3B is not loaded.");
+    if (!this.#generator || !this.loaded) throw new Error("MODEL_NOT_LOADED: SmolLM2-360M is not loaded.");
     if (input.signal?.aborted) throw new DOMException("Cancelled", "AbortError");
 
-    const reasoningDirective = input.thinking ? "/think" : "/no_think";
     const messages = [
-      { role: "system" as const, content: `${input.systemPrompt.trim()}\n${reasoningDirective}` },
+      { role: "system" as const, content: input.systemPrompt.trim() },
       { role: "user" as const, content: input.userPrompt }
     ];
 
@@ -152,7 +137,7 @@ export class SmolLM3WebGpuAdapter implements ModelAdapter {
 
     if (input.signal?.aborted) throw new DOMException("Cancelled", "AbortError");
     const text = extractGeneratedText(output).trim();
-    if (!text) throw new Error("MODEL_EMPTY_OUTPUT: SmolLM3 returned no assistant content.");
+    if (!text) throw new Error("MODEL_EMPTY_OUTPUT: SmolLM2 returned no assistant content.");
 
     this.lastGenerationMetadata = {
       requestedModel: MODEL_ID,

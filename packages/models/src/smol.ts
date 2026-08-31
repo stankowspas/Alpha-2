@@ -11,22 +11,17 @@ export interface SmolModelDefinition {
   notes: string;
 }
 
-/**
- * Alpha 2 model catalog.
- *
- * Keep this list intentionally small: only the Hugging Face Smol models
- * selected for the current Alpha 2 architecture belong here.
- */
+/** Alpha 2 model catalog. Keep the browser text runtime intentionally lightweight. */
 export const SMOL_MODELS = {
   primaryText: {
-    id: "HuggingFaceTB/SmolLM3-3B",
-    displayName: "SmolLM3-3B",
+    id: "onnx-community/SmolLM2-360M-Instruct-ONNX",
+    displayName: "SmolLM2-360M-Instruct",
     kind: "text",
     role: "primary",
-    toolCalling: true,
-    reasoning: true,
-    maxContext: 128_000,
-    notes: "Primary text/reasoning model. Supports think/no_think and tool calling."
+    toolCalling: false,
+    reasoning: false,
+    maxContext: 8_192,
+    notes: "Primary lightweight browser text model. Search orchestration is handled by Alpha 2, not by native model tool calling."
   },
   vision: {
     id: "HuggingFaceTB/SmolVLM2-2.2B-Instruct",
