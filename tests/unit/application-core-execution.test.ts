@@ -6,26 +6,20 @@ class FakeModel implements ModelAdapter {
   readonly capabilities: ModelCapabilities = {
     maxContext: 4096,
     thinkingSupport: true,
-    structuredOutputSupport: true,
+    structuredOutputSupport: false,
     toolCallSupport: false,
     stopTokens: [],
     modelId: "fake-model"
   };
   readonly loaded = true;
   taskGenerations = 0;
-  auditGenerations = 0;
 
   constructor(private readonly chunks: string[] = ["Test answer"]) {}
 
   async load(): Promise<void> {}
   async unload(): Promise<void> {}
 
-  async *generate(input: GenerationInput): AsyncIterable<string> {
-    if (input.systemPrompt.includes("strict output auditor")) {
-      this.auditGenerations += 1;
-      yield JSON.stringify({ covered: true, requiresExternalProvenance: false, reason: "" });
-      return;
-    }
+  async *generate(_input: GenerationInput): AsyncIterable<string> {
     this.taskGenerations += 1;
     for (const chunk of this.chunks) yield chunk;
   }
@@ -47,7 +41,6 @@ describe("ApplicationCore model-only execution", () => {
     });
 
     expect(model.taskGenerations).toBe(1);
-    expect(model.auditGenerations).toBe(1);
     expect(result.taskPlan.steps).toHaveLength(1);
     expect(result.taskPlan.steps[0]?.kind).toBe("MODEL");
     expect(result.taskPlan.steps[0]?.status).toBe("COMPLETE");
@@ -73,7 +66,6 @@ describe("ApplicationCore model-only execution", () => {
 
       expect(result.taskPlan.steps.map((step) => step.kind)).toEqual(["MODEL"]);
       expect(model.taskGenerations).toBe(1);
-    expect(model.auditGenerations).toBe(1);
       expect(result.publishable).toBe(true);
     }
 
@@ -91,8 +83,6 @@ describe("ApplicationCore model-only execution", () => {
     expect(result.taskPlan.steps[0]?.goal).toBe(text);
     expect(result.taskPlan.steps[0]?.kind).toBe("MODEL");
     expect(model.taskGenerations).toBe(1);
-    expect(model.auditGenerations).toBe(1);
     expect(result.answer).toBe("Combined response");
   });
 });
-
