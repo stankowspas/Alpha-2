@@ -9,11 +9,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.json --pretty false"
   },
   "dependencies": {
-    "@alpha/ai-core": "*",
     "@alpha/memory": "*",
-    "@alpha/models": "*",
+    "@alpha/branding": "*",
     "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "@alpha/branding": "*"
+    "react-dom": "19.2.8"
   }
 }
