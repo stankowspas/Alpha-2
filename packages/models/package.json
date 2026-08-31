@@ -8,6 +8,7 @@
     "./smol": "./src/smol.ts"
   },
   "dependencies": {
-    "@alpha/shared": "*"
+    "@alpha/shared": "*",
+    "@huggingface/transformers": "3.8.1"
   }
 }
