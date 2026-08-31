@@ -76,7 +76,6 @@ export class ModelStepExecutor implements StepExecutor {
       maxTokens: prompt.maxTokens,
       thinking: prompt.thinking,
       temperature: prompt.temperature,
-      useGoogleSearch: true,
       signal: context.signal
     })) {
       answer += token;
