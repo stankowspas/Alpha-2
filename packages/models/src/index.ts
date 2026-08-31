@@ -16,6 +16,8 @@ export interface GenerationInput {
   maxTokens: number;
   thinking: boolean;
   temperature?: number;
+  useGoogleSearch?: boolean;
+  responseJsonSchema?: Record<string, unknown>;
   signal?: AbortSignal;
 }
 
@@ -124,8 +126,12 @@ export class BrowserGeminiModelAdapter implements ModelAdapter {
       try {
         let emitted = false;
         const providerSources: string[] = [];
-        const generationConfig: Record<string, number> = { maxOutputTokens: input.maxTokens };
+        const generationConfig: Record<string, unknown> = { maxOutputTokens: input.maxTokens };
         if (typeof input.temperature === "number") generationConfig.temperature = input.temperature;
+        if (input.responseJsonSchema) {
+          generationConfig.responseMimeType = "application/json";
+          generationConfig.responseSchema = input.responseJsonSchema;
+        }
 
         const response = await this.#fetch(apiUrl(modelId), {
           method: "POST",
@@ -138,6 +144,7 @@ export class BrowserGeminiModelAdapter implements ModelAdapter {
               systemInstruction: { parts: [{ text: input.systemPrompt }] }
             } : {}),
             contents: [{ role: "user", parts: [{ text: input.userPrompt }] }],
+            ...(input.useGoogleSearch ? { tools: [{ googleSearch: {} }] } : {}),
             generationConfig
           }),
           signal: input.signal
