@@ -9,6 +9,16 @@ type Generator = ((messages: Array<{ role: "system" | "user"; content: string }>
   tokenizer?: unknown;
 };
 
+type ProgressEvent = {
+  status?: unknown;
+  file?: unknown;
+  progress?: unknown;
+  loaded?: unknown;
+  total?: unknown;
+};
+
+type FileProgress = { loaded: number; total: number };
+
 function extractGeneratedText(output: unknown): string {
   if (!Array.isArray(output) || output.length === 0) return "";
   const candidate = output[0] as GenerationCandidate;
@@ -21,6 +31,27 @@ function extractGeneratedText(output: unknown): string {
     }
   }
   return "";
+}
+
+function safeNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : undefined;
+}
+
+function aggregateProgress(files: Map<string, FileProgress>, fallback?: number): number {
+  let loaded = 0;
+  let total = 0;
+  for (const item of files.values()) {
+    loaded += Math.min(item.loaded, item.total);
+    total += item.total;
+  }
+  if (total > 0) return Math.max(0, Math.min(0.995, loaded / total));
+  if (fallback !== undefined) return Math.max(0, Math.min(0.995, fallback));
+  return 0;
+}
+
+function humanFileName(file: string): string {
+  const parts = file.split("/");
+  return parts.at(-1) || file;
 }
 
 export class SmolLM3WebGpuAdapter implements ModelAdapter {
@@ -38,26 +69,56 @@ export class SmolLM3WebGpuAdapter implements ModelAdapter {
   #generator?: Generator;
 
   async load(onProgress?: (progress: number, text: string) => void): Promise<void> {
-    if (this.loaded) return;
+    if (this.loaded) {
+      onProgress?.(1, "SmolLM3-3B е готов.");
+      return;
+    }
     if (typeof navigator === "undefined" || !("gpu" in navigator)) {
       throw new Error("WEBGPU_NOT_AVAILABLE: SmolLM3 requires a WebGPU-capable browser.");
     }
 
-    onProgress?.(0, "Зареждане на SmolLM3-3B…");
+    const files = new Map<string, FileProgress>();
+    let lastProgress = 0;
+    onProgress?.(0, "Подготовка на SmolLM3-3B…");
+
     const created = await pipeline("text-generation", MODEL_ID, {
       dtype: "q4f16",
       device: "webgpu",
-      progress_callback: (event: unknown) => {
-        if (!event || typeof event !== "object") return;
-        const progress = (event as { progress?: unknown }).progress;
-        const file = (event as { file?: unknown }).file;
-        if (typeof progress === "number") {
-          const normalized = Math.max(0, Math.min(1, progress > 1 ? progress / 100 : progress));
-          onProgress?.(normalized, typeof file === "string" ? `Зареждане: ${file}` : "Зареждане на модела…");
+      progress_callback: (raw: unknown) => {
+        if (!raw || typeof raw !== "object") return;
+        const event = raw as ProgressEvent;
+        const file = typeof event.file === "string" ? event.file : undefined;
+        const status = typeof event.status === "string" ? event.status : undefined;
+        const loaded = safeNumber(event.loaded);
+        const total = safeNumber(event.total);
+        const rawProgress = safeNumber(event.progress);
+        const normalizedFileProgress = rawProgress === undefined
+          ? undefined
+          : Math.max(0, Math.min(1, rawProgress > 1 ? rawProgress / 100 : rawProgress));
+
+        if (file && total && total > 0) {
+          files.set(file, {
+            loaded: loaded ?? (normalizedFileProgress ?? 0) * total,
+            total
+          });
+        } else if (file && status === "done") {
+          const existing = files.get(file);
+          if (existing) files.set(file, { loaded: existing.total, total: existing.total });
         }
+
+        const aggregate = aggregateProgress(files, normalizedFileProgress);
+        lastProgress = Math.max(lastProgress, aggregate);
+
+        let text = "Зареждане на модела…";
+        if (file) text = `Теглене: ${humanFileName(file)}`;
+        else if (status === "initiate") text = "Подготовка на файловете…";
+        else if (status === "ready") text = "Инициализиране на WebGPU…";
+
+        onProgress?.(lastProgress, text);
       }
     });
 
+    onProgress?.(Math.max(lastProgress, 0.995), "Инициализиране на модела в WebGPU…");
     this.#generator = created as unknown as Generator;
     this.loaded = true;
     onProgress?.(1, "SmolLM3-3B е готов.");
