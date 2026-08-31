@@ -59,4 +59,4 @@ export class UnconfiguredModelAdapter implements ModelAdapter {
 }
 
 export { SmolLM3WebGpuAdapter } from "./smollm3-webgpu";
-export * from "./smol-catalog";
+export * from "./smol";
