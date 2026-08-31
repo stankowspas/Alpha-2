@@ -24,11 +24,6 @@ async function generateLocal(prompt: string): Promise<string> {
   return answer.trim();
 }
 
-function runInternetSearch(query: string): boolean {
-  const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
-  return window.open(url, "_blank", "noopener,noreferrer") !== null;
-}
-
 export function App() {
   const [locale, setLocale] = useState<UiLocale>(getInitialLocale);
   const [history, setHistory] = useState<ConversationMessage[]>([]);
@@ -45,10 +40,14 @@ export function App() {
   const t = UI_MESSAGES[locale];
 
   const searxngUrl = (import.meta.env.VITE_SEARXNG_URL as string | undefined)?.trim();
-  const searchAgent = useMemo(() => {
+  const searchProvider = useMemo(() => {
     if (!searxngUrl) return null;
-    return new SmolWebSearchAgent(model, new SearxngSearchProviderAdapter({ baseUrl: searxngUrl, language: locale, categories: ["general"] }));
+    return new SearxngSearchProviderAdapter({ baseUrl: searxngUrl, language: locale, categories: ["general"] });
   }, [locale, searxngUrl]);
+  const searchAgent = useMemo(() => {
+    if (!searchProvider) return null;
+    return new SmolWebSearchAgent(model, searchProvider);
+  }, [searchProvider]);
 
   useEffect(() => { void listConversationMessages(CONVERSATION_ID).then(setHistory).catch(() => undefined); }, []);
   useEffect(() => { persistLocale(locale); }, [locale]);
@@ -65,7 +64,7 @@ export function App() {
   function selectInternetSearch(): void {
     setSelectedTask("internet-search");
     setMessage("");
-    setAnswer("Задача: Търси в интернет. Въведи какво да намеря и натисни „Изпълни“.");
+    setAnswer("Задача: Търси в нашата интернет търсачка. Въведи заявка и натисни „Изпълни“.");
     setSources([]);
     setError(null);
   }
@@ -76,11 +75,28 @@ export function App() {
     if (!prompt || busy) return;
 
     if (selectedTask === "internet-search") {
-      setError(null);
-      setSources([]);
-      const opened = runInternetSearch(prompt);
-      if (opened) setAnswer(`Стартирано интернет търсене за: “${prompt}”`);
-      else setError("Браузърът блокира новия прозорец. Разреши pop-ups за Alpha Chat и опитай отново.");
+      if (!searchProvider) {
+        setError("Нашата търсачка още няма конфигуриран SearXNG endpoint.");
+        return;
+      }
+      setBusy(true); setError(null); setAnswer(""); setSources([]);
+      try {
+        const results = await searchProvider.search({ query: prompt, maxResults: 10 });
+        setSources(results.map((result) => ({
+          title: result.title,
+          url: result.url,
+          snippet: result.snippet,
+          publishedAt: result.publishedAt,
+          retrievedAtUtc: result.retrievedAtUtc
+        })));
+        setAnswer(results.length > 0
+          ? `Намерени резултати за: “${prompt}”`
+          : `Няма намерени резултати за: “${prompt}”`);
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : String(cause));
+      } finally {
+        setBusy(false);
+      }
       return;
     }
 
@@ -98,17 +114,17 @@ export function App() {
 
   return <main className="app-shell">
     <header className="topbar"><div><p className="eyebrow">{PRODUCT_BRANDING.version}</p><h1>{PRODUCT_BRANDING.officialName}</h1><p className="subtitle">Developed by {PRODUCT_BRANDING.developer}</p></div>
-      <div className="topbar-tools"><label className="language-picker"><span className="language-icon" aria-hidden="true">◎</span><span className="language-label">{t.language}</span><select value={locale} onChange={(event) => setLocale(event.target.value as UiLocale)} aria-label={t.language}>{UI_LANGUAGES.map((language) => <option key={language.code} value={language.code}>{language.label}</option>)}</select></label><div className="status-stack" aria-live="polite"><span className={`status ${modelReady ? "ok" : "warn"}`}>AI runtime: {modelReady ? "WebGPU ready" : loading ? `${loadPercent}%` : "not loaded"}</span><span className={`status ${searxngUrl ? "ok" : "warn"}`}>Search: {searxngUrl ? "SearXNG configured" : "browser task ready"}</span></div></div></header>
+      <div className="topbar-tools"><label className="language-picker"><span className="language-icon" aria-hidden="true">◎</span><span className="language-label">{t.language}</span><select value={locale} onChange={(event) => setLocale(event.target.value as UiLocale)} aria-label={t.language}>{UI_LANGUAGES.map((language) => <option key={language.code} value={language.code}>{language.label}</option>)}</select></label><div className="status-stack" aria-live="polite"><span className={`status ${modelReady ? "ok" : "warn"}`}>AI runtime: {modelReady ? "WebGPU ready" : loading ? `${loadPercent}%` : "not loaded"}</span><span className={`status ${searxngUrl ? "ok" : "warn"}`}>Search: {searxngUrl ? "Alpha search ready" : "endpoint not configured"}</span></div></div></header>
     <section className="workspace"><aside className="sidebar" aria-label={t.conversations}>
       <strong>Задачи</strong>
       <button type="button" className="primary" onClick={selectInternetSearch}>Търси в интернет</button>
-      {taskActive && <p className="muted">Активна задача: интернет търсене</p>}
+      {taskActive && <p className="muted">Активна задача: наша интернет търсачка</p>}
       <hr />
       <button type="button" className="primary" onClick={() => void loadModel()} disabled={loading || modelReady}>{modelReady ? "Qwen2.5 зареден" : loading ? `Зареждане ${loadPercent}%` : "Зареди Qwen2.5-0.5B"}</button>
       {(loading || modelReady) && <div className="model-load" aria-live="polite"><div className="model-load-head"><strong>{modelReady ? "Готов" : `Зареждане · ${loadPercent}%`}</strong><span>{loadPercent}%</span></div><progress className="model-progress" max={100} value={loadPercent}>{loadPercent}%</progress><p className="muted model-load-text">{progressText}</p>{loading && <p className="muted model-load-note">Многоезичният модел се изтегля и след това се инициализира в WebGPU.</p>}</div>}
       {!loading && !modelReady && <p className="muted">{progressText}</p>}<p className="muted">{t.savedMessages}: {history.length}</p><div className="diagnostic"><strong>{t.provider}</strong><span>Transformers.js / WebGPU</span></div></aside>
-      <section className="chat-panel">{!answer && <div className="empty-state"><h2>Alpha Chat 2.0 · Автоматизации</h2><p>Избери задача от бутоните вляво. Първата задача „Търси в интернет“ работи директно през браузъра и не изисква зареден AI модел.</p></div>}
-        {answer && <article className="answer"><h3>{taskActive ? "Задача" : "Отговор"}</h3><pre>{answer}</pre>{sources.length > 0 && <details><summary>Източници ({sources.length})</summary><ol>{sources.map((source) => <li key={source.url}><a href={source.url} target="_blank" rel="noreferrer">{source.title}</a></li>)}</ol></details>}</article>}
+      <section className="chat-panel">{!answer && <div className="empty-state"><h2>Alpha Chat 2.0 · Автоматизации</h2><p>Избери задача от бутоните вляво. „Търси в интернет“ използва нашия search provider и показва резултатите директно в Alpha-2.</p></div>}
+        {answer && <article className="answer"><h3>{taskActive ? "Търсене" : "Отговор"}</h3><pre>{answer}</pre>{sources.length > 0 && <ol>{sources.map((source) => <li key={source.url}><a href={source.url} target="_blank" rel="noreferrer">{source.title}</a>{source.snippet && <p>{source.snippet}</p>}</li>)}</ol>}</article>}
         {error && <p className="notice" aria-live="polite">{error}</p>}
         <form className="composer" onSubmit={(event) => void submit(event)}><label htmlFor="message">{taskActive ? "Какво да намеря в интернет?" : t.message}</label><div className="composer-row"><textarea id="message" value={message} onChange={(event) => setMessage(event.target.value)} placeholder={taskActive ? "Например: новини за WebGPU" : modelReady ? t.placeholder : "Избери задача или зареди Qwen2.5-0.5B"} rows={3} disabled={busy || (!taskActive && !modelReady)} /><button type="submit" className="primary" disabled={busy || !message.trim() || (!taskActive && !modelReady)}>{busy ? "Работи…" : taskActive ? "Изпълни" : t.send}</button></div></form>
       </section></section>
