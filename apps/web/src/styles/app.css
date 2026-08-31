@@ -47,6 +47,12 @@ fieldset button.selected { border-color: #6f8ef4; background: #25345b; color: wh
 .composer-row { display: flex; gap: 12px; align-items: flex-end; }
 textarea { flex: 1; resize: vertical; min-height: 82px; padding: 12px; border-radius: 12px; border: 1px solid #34415f; background: #10182a; color: white; }
 textarea:focus, button:focus-visible, summary:focus-visible { outline: 2px solid #8aa4ff; outline-offset: 2px; }
+.model-load { margin-top: 14px; padding: 12px; border: 1px solid #2f3d5f; border-radius: 12px; background: #111a2e; }
+.model-load-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 8px; font-size: 13px; }
+.model-load-head span { color: #b9c9ec; font-variant-numeric: tabular-nums; }
+.model-progress { display: block; width: 100%; height: 12px; accent-color: #6f8ef4; }
+.model-load-text { margin: 8px 0 0; overflow-wrap: anywhere; font-size: 12px; line-height: 1.4; }
+.model-load-note { margin: 8px 0 0; font-size: 11px; line-height: 1.4; }
 @media (max-width: 760px) { .topbar { flex-direction: column; } .status-stack { justify-content: flex-start; } .workspace { grid-template-columns: 1fr; } .sidebar { border-right: 0; border-bottom: 1px solid #26304a; } .composer-row { flex-direction: column; align-items: stretch; } .debug-grid { grid-template-columns: 1fr; } }
 
 .topbar-tools { display: grid; gap: 12px; justify-items: end; align-content: start; }
