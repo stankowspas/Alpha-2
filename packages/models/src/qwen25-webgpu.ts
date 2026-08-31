@@ -1,13 +1,11 @@
 import { pipeline } from "@huggingface/transformers";
 import type { GenerationInput, ModelAdapter, ModelCapabilities, ModelGenerationMetadata } from "./index";
 
-const MODEL_ID = "onnx-community/SmolLM2-360M-Instruct-ONNX";
+const MODEL_ID = "onnx-community/Qwen2.5-0.5B-Instruct";
 
 type GeneratedMessage = { role?: unknown; content?: unknown };
 type GenerationCandidate = { generated_text?: unknown };
-type Generator = ((messages: Array<{ role: "system" | "user"; content: string }>, options: Record<string, unknown>) => Promise<unknown>) & {
-  tokenizer?: unknown;
-};
+type Generator = ((messages: Array<{ role: "system" | "user"; content: string }>, options: Record<string, unknown>) => Promise<unknown>);
 
 type ProgressEvent = {
   status?: unknown;
@@ -50,11 +48,11 @@ function formatMiB(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(bytes >= 100 * 1024 * 1024 ? 0 : 1)} MB`;
 }
 
-export class SmolLM2WebGpuAdapter implements ModelAdapter {
+export class Qwen25WebGpuAdapter implements ModelAdapter {
   readonly capabilities: ModelCapabilities = {
-    maxContext: 8_192,
+    maxContext: 32_768,
     thinkingSupport: false,
-    structuredOutputSupport: false,
+    structuredOutputSupport: true,
     toolCallSupport: false,
     stopTokens: ["<|im_end|>", "<|endoftext|>"],
     modelId: MODEL_ID
@@ -66,15 +64,15 @@ export class SmolLM2WebGpuAdapter implements ModelAdapter {
 
   async load(onProgress?: (progress: number, text: string) => void): Promise<void> {
     if (this.loaded) {
-      onProgress?.(1, "SmolLM2-360M е готов.");
+      onProgress?.(1, "Qwen2.5-0.5B е готов.");
       return;
     }
     if (typeof navigator === "undefined" || !("gpu" in navigator)) {
-      throw new Error("WEBGPU_NOT_AVAILABLE: SmolLM2 requires a WebGPU-capable browser.");
+      throw new Error("WEBGPU_NOT_AVAILABLE: Qwen2.5 requires a WebGPU-capable browser.");
     }
 
     let totalProgress = 0;
-    onProgress?.(0, "Подготовка на SmolLM2-360M…");
+    onProgress?.(0, "Подготовка на Qwen2.5-0.5B…");
 
     const created = await pipeline("text-generation", MODEL_ID, {
       dtype: "q4f16",
@@ -117,11 +115,11 @@ export class SmolLM2WebGpuAdapter implements ModelAdapter {
 
     this.#generator = created as unknown as Generator;
     this.loaded = true;
-    onProgress?.(1, "SmolLM2-360M е готов.");
+    onProgress?.(1, "Qwen2.5-0.5B е готов.");
   }
 
   async *generate(input: GenerationInput): AsyncIterable<string> {
-    if (!this.#generator || !this.loaded) throw new Error("MODEL_NOT_LOADED: SmolLM2-360M is not loaded.");
+    if (!this.#generator || !this.loaded) throw new Error("MODEL_NOT_LOADED: Qwen2.5-0.5B is not loaded.");
     if (input.signal?.aborted) throw new DOMException("Cancelled", "AbortError");
 
     const messages = [
@@ -132,12 +130,13 @@ export class SmolLM2WebGpuAdapter implements ModelAdapter {
     const output = await this.#generator(messages, {
       max_new_tokens: Math.max(1, Math.trunc(input.maxTokens)),
       temperature: input.temperature ?? 0.2,
-      do_sample: (input.temperature ?? 0.2) > 0
+      do_sample: (input.temperature ?? 0.2) > 0,
+      repetition_penalty: 1.05
     });
 
     if (input.signal?.aborted) throw new DOMException("Cancelled", "AbortError");
     const text = extractGeneratedText(output).trim();
-    if (!text) throw new Error("MODEL_EMPTY_OUTPUT: SmolLM2 returned no assistant content.");
+    if (!text) throw new Error("MODEL_EMPTY_OUTPUT: Qwen2.5 returned no assistant content.");
 
     this.lastGenerationMetadata = {
       requestedModel: MODEL_ID,

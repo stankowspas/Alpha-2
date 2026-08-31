@@ -11,17 +11,17 @@ export interface SmolModelDefinition {
   notes: string;
 }
 
-/** Alpha 2 model catalog. Keep the browser text runtime intentionally lightweight. */
+/** Alpha 2 model catalog. Browser text runtime prioritizes multilingual support. */
 export const SMOL_MODELS = {
   primaryText: {
-    id: "onnx-community/SmolLM2-360M-Instruct-ONNX",
-    displayName: "SmolLM2-360M-Instruct",
+    id: "onnx-community/Qwen2.5-0.5B-Instruct",
+    displayName: "Qwen2.5-0.5B-Instruct",
     kind: "text",
     role: "primary",
     toolCalling: false,
     reasoning: false,
-    maxContext: 8_192,
-    notes: "Primary lightweight browser text model. Search orchestration is handled by Alpha 2, not by native model tool calling."
+    maxContext: 32_768,
+    notes: "Primary multilingual browser text model. Search orchestration is handled by Alpha 2."
   },
   vision: {
     id: "HuggingFaceTB/SmolVLM2-2.2B-Instruct",
