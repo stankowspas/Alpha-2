@@ -5,6 +5,7 @@ import { SmolLM3WebGpuAdapter } from "@alpha/models";
 import { SearxngSearchProviderAdapter } from "@alpha/retrieval/searxng";
 import { SmolWebSearchAgent, type SmolWebSearchSource } from "@alpha/search-agent";
 import { getInitialLocale, persistLocale, UI_LANGUAGES, UI_MESSAGES, type UiLocale } from "../i18n";
+import { visibleLoadPercent } from "./loading-percent";
 
 const CONVERSATION_ID = "alpha-default";
 const model = new SmolLM3WebGpuAdapter();
@@ -94,7 +95,7 @@ export function App() {
     }
   }
 
-  const loadPercent = Math.round(loadProgress * 100);
+  const loadPercent = visibleLoadPercent(loadProgress, modelReady);
 
   return (
     <main className="app-shell">
