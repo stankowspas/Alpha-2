@@ -31,7 +31,7 @@ jobs:
           node-version: "22"
 
       - name: Install
-        run: npm ci --no-audit --no-fund
+        run: npm install --no-audit --no-fund
 
       - name: Verify
         run: npm run ci
