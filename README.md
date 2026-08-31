@@ -4,21 +4,21 @@
 **Developed by:** Spas Stankov  
 **Status:** internal Alpha development
 
-Alpha Chat 2.0 is a local-first PWA being prepared for a Smol-family runtime and controlled web retrieval.
+Alpha Chat 2.0 is a local-first PWA with a lightweight Smol-family runtime and controlled web retrieval.
 
 ## Current runtime
 
 - Web UI: React + TypeScript + Vite.
-- No production remote AI provider is configured.
-- No remote AI API key is required by the current Pages build.
+- Browser inference: Transformers.js + WebGPU.
+- Primary model: `onnx-community/SmolLM2-360M-Instruct-ONNX` using `q4f16`.
+- No production remote AI provider or remote AI API key is required by the current Pages build.
 - Conversation history is stored locally.
-- Concrete legacy remote models are not part of the current model package.
 
 ## Selected model stack
 
-Primary text/reasoning model:
+Primary lightweight text model:
 
-- `HuggingFaceTB/SmolLM3-3B`
+- `onnx-community/SmolLM2-360M-Instruct-ONNX`
 
 Optional multimodal workers:
 
@@ -26,20 +26,18 @@ Optional multimodal workers:
 - `HuggingFaceTB/SmolVLM2-500M-Video-Instruct`
 - `HuggingFaceTB/SmolVLM2-256M-Video-Instruct`
 
-The repository now contains the selected catalog, but the actual local inference runtime is not wired into the Pages UI yet.
+The 3B browser runtime was removed because its download and memory requirements were too heavy for reliable client-side loading.
 
 ## Web search target
 
 The first web-search backend is SearXNG.
 
 ```text
-User -> SmolLM3-3B -> search_web -> SearXNG -> results
+User -> SmolLM2-360M -> Alpha 2 search controller -> search_web -> SearXNG
      -> selected page extraction -> evidence -> answer + sources
 ```
 
-`@alpha/retrieval/searxng` contains the SearXNG JSON API provider. A controlled/self-hosted SearXNG instance is the intended deployment target.
-
-See `docs/architecture/SMOL_SEARCH_ARCHITECTURE.md` for the implementation plan and separation of responsibilities.
+Search orchestration is handled by Alpha 2 rather than relying on native model tool calling.
 
 ## Local development
 
@@ -55,7 +53,3 @@ npm run typecheck
 npm test
 npm run build
 ```
-
-## PWA / GitHub Pages
-
-The current GitHub Pages deployment remains static. The Smol runtime/tool execution layer is the next implementation milestone; the UI must not claim that the model or web search is active until those components are actually connected.
