@@ -13,7 +13,6 @@ export interface GenerationInput {
   maxTokens: number;
   thinking: boolean;
   temperature?: number;
-  responseJsonSchema?: Record<string, unknown>;
   signal?: AbortSignal;
 }
 
