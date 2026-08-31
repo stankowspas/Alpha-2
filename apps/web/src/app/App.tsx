@@ -1,14 +1,48 @@
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { PRODUCT_BRANDING } from "@alpha/branding";
 import { listConversationMessages, type ConversationMessage } from "@alpha/memory";
+import { SmolLM3WebGpuAdapter } from "@alpha/models";
+import { SearxngSearchProviderAdapter } from "@alpha/retrieval/searxng";
+import { SmolWebSearchAgent, type SmolWebSearchSource } from "@alpha/search-agent";
 import { getInitialLocale, persistLocale, UI_LANGUAGES, UI_MESSAGES, type UiLocale } from "../i18n";
 
 const CONVERSATION_ID = "alpha-default";
+const model = new SmolLM3WebGpuAdapter();
+
+async function generateLocal(prompt: string): Promise<string> {
+  let answer = "";
+  for await (const token of model.generate({
+    systemPrompt: "You are Alpha 2, a concise and accurate local assistant. Do not claim current web facts unless web evidence is provided.",
+    userPrompt: prompt,
+    maxTokens: 1200,
+    thinking: false,
+    temperature: 0.2
+  })) answer += token;
+  return answer.trim();
+}
 
 export function App() {
   const [locale, setLocale] = useState<UiLocale>(getInitialLocale);
   const [history, setHistory] = useState<ConversationMessage[]>([]);
+  const [modelReady, setModelReady] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [progressText, setProgressText] = useState("SmolLM3-3B не е зареден");
+  const [message, setMessage] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [sources, setSources] = useState<SmolWebSearchSource[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const t = UI_MESSAGES[locale];
+
+  const searxngUrl = (import.meta.env.VITE_SEARXNG_URL as string | undefined)?.trim();
+  const searchAgent = useMemo(() => {
+    if (!searxngUrl) return null;
+    return new SmolWebSearchAgent(model, new SearxngSearchProviderAdapter({
+      baseUrl: searxngUrl,
+      language: locale,
+      categories: ["general"]
+    }));
+  }, [locale, searxngUrl]);
 
   useEffect(() => {
     void listConversationMessages(CONVERSATION_ID).then(setHistory).catch(() => undefined);
@@ -17,6 +51,42 @@ export function App() {
   useEffect(() => {
     persistLocale(locale);
   }, [locale]);
+
+  async function loadModel(): Promise<void> {
+    setLoading(true);
+    setError(null);
+    try {
+      await model.load((_progress, text) => setProgressText(text));
+      setModelReady(true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
+    const prompt = message.trim();
+    if (!prompt || !modelReady || busy) return;
+    setBusy(true);
+    setError(null);
+    setAnswer("");
+    setSources([]);
+    try {
+      if (searchAgent) {
+        const result = await searchAgent.run(prompt);
+        setAnswer(result.answer);
+        setSources(result.sources);
+      } else {
+        setAnswer(await generateLocal(prompt));
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <main className="app-shell">
@@ -35,32 +105,54 @@ export function App() {
             </select>
           </label>
           <div className="status-stack" aria-live="polite">
-            <span className="status warn">AI runtime: not configured</span>
-            <span className="status warn">{t.model}: {t.notSelected}</span>
+            <span className={`status ${modelReady ? "ok" : "warn"}`}>AI runtime: {modelReady ? "WebGPU ready" : "not loaded"}</span>
+            <span className={`status ${searxngUrl ? "ok" : "warn"}`}>Search: {searxngUrl ? "SearXNG configured" : "local only"}</span>
           </div>
         </div>
       </header>
 
       <section className="workspace">
         <aside className="sidebar" aria-label={t.conversations}>
-          <button type="button" className="primary">{t.newChat}</button>
+          <button type="button" className="primary" onClick={() => void loadModel()} disabled={loading || modelReady}>
+            {modelReady ? "SmolLM3 зареден" : loading ? "Зареждане…" : "Зареди SmolLM3-3B"}
+          </button>
+          <p className="muted">{progressText}</p>
           <p className="muted">{t.savedMessages}: {history.length}</p>
-          <div className="diagnostic"><strong>{t.provider}</strong><span>local-browser</span></div>
+          <div className="diagnostic"><strong>{t.provider}</strong><span>Transformers.js / WebGPU</span></div>
         </aside>
 
         <section className="chat-panel">
-          <div className="empty-state">
-            <h2>Alpha Chat 2.0</h2>
-            <p>Локалният browser модел още не е инсталиран.</p>
-          </div>
+          {!answer && (
+            <div className="empty-state">
+              <h2>Alpha Chat 2.0 · SmolLM3-3B</h2>
+              <p>Моделът работи локално в браузъра чрез WebGPU. Интернет търсенето се активира само ако е конфигуриран SearXNG endpoint.</p>
+            </div>
+          )}
 
-          <p className="notice" aria-live="polite">MODEL_NOT_CONFIGURED</p>
+          {answer && (
+            <article className="answer">
+              <h3>Отговор</h3>
+              <pre>{answer}</pre>
+              {sources.length > 0 && (
+                <details>
+                  <summary>Източници ({sources.length})</summary>
+                  <ol>
+                    {sources.map((source) => (
+                      <li key={source.url}><a href={source.url} target="_blank" rel="noreferrer">{source.title}</a></li>
+                    ))}
+                  </ol>
+                </details>
+              )}
+            </article>
+          )}
 
-          <form className="composer" onSubmit={(event) => event.preventDefault()}>
+          {error && <p className="notice" aria-live="polite">{error}</p>}
+
+          <form className="composer" onSubmit={(event) => void submit(event)}>
             <label htmlFor="message">{t.message}</label>
             <div className="composer-row">
-              <textarea id="message" placeholder={t.placeholder} rows={3} disabled />
-              <button type="submit" className="primary" disabled>{t.send}</button>
+              <textarea id="message" value={message} onChange={(event) => setMessage(event.target.value)} placeholder={modelReady ? t.placeholder : "Първо зареди SmolLM3-3B"} rows={3} disabled={!modelReady || busy} />
+              <button type="submit" className="primary" disabled={!modelReady || busy || !message.trim()}>{busy ? "Работи…" : t.send}</button>
             </div>
           </form>
         </section>
