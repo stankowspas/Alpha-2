@@ -1,21 +1,21 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { PRODUCT_BRANDING } from "@alpha/branding";
 import { listConversationMessages, type ConversationMessage } from "@alpha/memory";
-import { SmolLM2WebGpuAdapter } from "@alpha/models";
+import { Qwen25WebGpuAdapter } from "@alpha/models";
 import { SearxngSearchProviderAdapter } from "@alpha/retrieval/searxng";
 import { SmolWebSearchAgent, type SmolWebSearchSource } from "@alpha/search-agent";
 import { getInitialLocale, persistLocale, UI_LANGUAGES, UI_MESSAGES, type UiLocale } from "../i18n";
 import { visibleLoadPercent } from "./loading-percent";
 
 const CONVERSATION_ID = "alpha-default";
-const model = new SmolLM2WebGpuAdapter();
+const model = new Qwen25WebGpuAdapter();
 
 async function generateLocal(prompt: string): Promise<string> {
   let answer = "";
   for await (const token of model.generate({
-    systemPrompt: "You are Alpha 2, a concise and accurate local assistant. Do not claim current web facts unless web evidence is provided.",
+    systemPrompt: "You are Alpha 2, a concise and accurate multilingual local assistant. Reply in the user's language. Do not claim current web facts unless web evidence is provided.",
     userPrompt: prompt,
-    maxTokens: 800,
+    maxTokens: 700,
     thinking: false,
     temperature: 0.2
   })) answer += token;
@@ -29,7 +29,7 @@ export function App() {
   const [loading, setLoading] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [progressText, setProgressText] = useState("SmolLM2-360M не е зареден");
+  const [progressText, setProgressText] = useState("Qwen2.5-0.5B не е зареден");
   const [message, setMessage] = useState("");
   const [answer, setAnswer] = useState("");
   const [sources, setSources] = useState<SmolWebSearchSource[]>([]);
@@ -72,13 +72,13 @@ export function App() {
     <header className="topbar"><div><p className="eyebrow">{PRODUCT_BRANDING.version}</p><h1>{PRODUCT_BRANDING.officialName}</h1><p className="subtitle">Developed by {PRODUCT_BRANDING.developer}</p></div>
       <div className="topbar-tools"><label className="language-picker"><span className="language-icon" aria-hidden="true">◎</span><span className="language-label">{t.language}</span><select value={locale} onChange={(event) => setLocale(event.target.value as UiLocale)} aria-label={t.language}>{UI_LANGUAGES.map((language) => <option key={language.code} value={language.code}>{language.label}</option>)}</select></label><div className="status-stack" aria-live="polite"><span className={`status ${modelReady ? "ok" : "warn"}`}>AI runtime: {modelReady ? "WebGPU ready" : loading ? `${loadPercent}%` : "not loaded"}</span><span className={`status ${searxngUrl ? "ok" : "warn"}`}>Search: {searxngUrl ? "SearXNG configured" : "local only"}</span></div></div></header>
     <section className="workspace"><aside className="sidebar" aria-label={t.conversations}>
-      <button type="button" className="primary" onClick={() => void loadModel()} disabled={loading || modelReady}>{modelReady ? "SmolLM2 зареден" : loading ? `Зареждане ${loadPercent}%` : "Зареди SmolLM2-360M"}</button>
-      {(loading || modelReady) && <div className="model-load" aria-live="polite"><div className="model-load-head"><strong>{modelReady ? "Готов" : `Зареждане · ${loadPercent}%`}</strong><span>{loadPercent}%</span></div><progress className="model-progress" max={100} value={loadPercent}>{loadPercent}%</progress><p className="muted model-load-text">{progressText}</p>{loading && <p className="muted model-load-note">Олекотеният модел се изтегля и след това се инициализира в WebGPU.</p>}</div>}
+      <button type="button" className="primary" onClick={() => void loadModel()} disabled={loading || modelReady}>{modelReady ? "Qwen2.5 зареден" : loading ? `Зареждане ${loadPercent}%` : "Зареди Qwen2.5-0.5B"}</button>
+      {(loading || modelReady) && <div className="model-load" aria-live="polite"><div className="model-load-head"><strong>{modelReady ? "Готов" : `Зареждане · ${loadPercent}%`}</strong><span>{loadPercent}%</span></div><progress className="model-progress" max={100} value={loadPercent}>{loadPercent}%</progress><p className="muted model-load-text">{progressText}</p>{loading && <p className="muted model-load-note">Многоезичният модел се изтегля и след това се инициализира в WebGPU.</p>}</div>}
       {!loading && !modelReady && <p className="muted">{progressText}</p>}<p className="muted">{t.savedMessages}: {history.length}</p><div className="diagnostic"><strong>{t.provider}</strong><span>Transformers.js / WebGPU</span></div></aside>
-      <section className="chat-panel">{!answer && <div className="empty-state"><h2>Alpha Chat 2.0 · SmolLM2-360M-Instruct</h2><p>Олекотен модел за локална работа в браузъра чрез WebGPU. Интернет търсенето се активира само ако е конфигуриран SearXNG endpoint.</p></div>}
+      <section className="chat-panel">{!answer && <div className="empty-state"><h2>Alpha Chat 2.0 · Qwen2.5-0.5B-Instruct</h2><p>Олекотен многоезичен модел за локална работа в браузъра чрез WebGPU. Интернет търсенето се активира само ако е конфигуриран SearXNG endpoint.</p></div>}
         {answer && <article className="answer"><h3>Отговор</h3><pre>{answer}</pre>{sources.length > 0 && <details><summary>Източници ({sources.length})</summary><ol>{sources.map((source) => <li key={source.url}><a href={source.url} target="_blank" rel="noreferrer">{source.title}</a></li>)}</ol></details>}</article>}
         {error && <p className="notice" aria-live="polite">{error}</p>}
-        <form className="composer" onSubmit={(event) => void submit(event)}><label htmlFor="message">{t.message}</label><div className="composer-row"><textarea id="message" value={message} onChange={(event) => setMessage(event.target.value)} placeholder={modelReady ? t.placeholder : "Първо зареди SmolLM2-360M"} rows={3} disabled={!modelReady || busy} /><button type="submit" className="primary" disabled={!modelReady || busy || !message.trim()}>{busy ? "Работи…" : t.send}</button></div></form>
+        <form className="composer" onSubmit={(event) => void submit(event)}><label htmlFor="message">{t.message}</label><div className="composer-row"><textarea id="message" value={message} onChange={(event) => setMessage(event.target.value)} placeholder={modelReady ? t.placeholder : "Първо зареди Qwen2.5-0.5B"} rows={3} disabled={!modelReady || busy} /><button type="submit" className="primary" disabled={!modelReady || busy || !message.trim()}>{busy ? "Работи…" : t.send}</button></div></form>
       </section></section>
   </main>;
 }
