@@ -167,8 +167,7 @@ class ModelOutputAuditGoalCoverageAdapter implements GoalCoverageAdapter {
           requiresExternalProvenance: { type: "boolean" },
           reason: { type: "string" }
         },
-        required: ["covered", "requiresExternalProvenance", "reason"],
-        additionalProperties: false
+        required: ["covered", "requiresExternalProvenance", "reason"]
       },
       signal
     })) raw += token;
