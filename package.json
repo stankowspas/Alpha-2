@@ -5,16 +5,13 @@
   "type": "module",
   "workspaces": [
     "apps/*",
-    "packages/*",
-    "server/*"
+    "packages/*"
   ],
   "scripts": {
     "dev": "npm run dev --workspace @alpha/web",
     "dev:web": "npm run dev --workspace @alpha/web",
-    "dev:search": "npm run dev --workspace @alpha/search-server",
-    "dev:fetch": "npm run dev --workspace @alpha/fetch-extract-server",
     "build": "npm run build --workspace @alpha/web",
-    "typecheck": "npm run typecheck --workspace @alpha/web && npm run typecheck --workspace @alpha/source-token && npm run typecheck --workspace @alpha/search-server && npm run typecheck --workspace @alpha/fetch-extract-server",
+    "typecheck": "npm run typecheck --workspace @alpha/web",
     "test": "vitest run",
     "test:watch": "vitest",
     "ci": "npm run typecheck && npm run test && npm run build"
