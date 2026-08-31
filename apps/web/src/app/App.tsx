@@ -26,6 +26,7 @@ export function App() {
   const [history, setHistory] = useState<ConversationMessage[]>([]);
   const [modelReady, setModelReady] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadProgress, setLoadProgress] = useState(0);
   const [busy, setBusy] = useState(false);
   const [progressText, setProgressText] = useState("SmolLM3-3B не е зареден");
   const [message, setMessage] = useState("");
@@ -54,10 +55,15 @@ export function App() {
 
   async function loadModel(): Promise<void> {
     setLoading(true);
+    setLoadProgress(0);
     setError(null);
     try {
-      await model.load((_progress, text) => setProgressText(text));
+      await model.load((progress, text) => {
+        setLoadProgress(Math.max(0, Math.min(1, progress)));
+        setProgressText(text);
+      });
       setModelReady(true);
+      setLoadProgress(1);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -88,6 +94,8 @@ export function App() {
     }
   }
 
+  const loadPercent = Math.round(loadProgress * 100);
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -105,7 +113,7 @@ export function App() {
             </select>
           </label>
           <div className="status-stack" aria-live="polite">
-            <span className={`status ${modelReady ? "ok" : "warn"}`}>AI runtime: {modelReady ? "WebGPU ready" : "not loaded"}</span>
+            <span className={`status ${modelReady ? "ok" : "warn"}`}>AI runtime: {modelReady ? "WebGPU ready" : loading ? `${loadPercent}%` : "not loaded"}</span>
             <span className={`status ${searxngUrl ? "ok" : "warn"}`}>Search: {searxngUrl ? "SearXNG configured" : "local only"}</span>
           </div>
         </div>
@@ -114,9 +122,22 @@ export function App() {
       <section className="workspace">
         <aside className="sidebar" aria-label={t.conversations}>
           <button type="button" className="primary" onClick={() => void loadModel()} disabled={loading || modelReady}>
-            {modelReady ? "SmolLM3 зареден" : loading ? "Зареждане…" : "Зареди SmolLM3-3B"}
+            {modelReady ? "SmolLM3 зареден" : loading ? `Зареждане ${loadPercent}%` : "Зареди SmolLM3-3B"}
           </button>
-          <p className="muted">{progressText}</p>
+
+          {(loading || modelReady) && (
+            <div className="model-load" aria-live="polite">
+              <div className="model-load-head">
+                <strong>{modelReady ? "Готов" : `Зареждане · ${loadPercent}%`}</strong>
+                <span>{loadPercent}%</span>
+              </div>
+              <progress className="model-progress" max={100} value={loadPercent}>{loadPercent}%</progress>
+              <p className="muted model-load-text">{progressText}</p>
+              {loading && <p className="muted model-load-note">При първо зареждане моделът се изтегля и след това се инициализира в WebGPU.</p>}
+            </div>
+          )}
+
+          {!loading && !modelReady && <p className="muted">{progressText}</p>}
           <p className="muted">{t.savedMessages}: {history.length}</p>
           <div className="diagnostic"><strong>{t.provider}</strong><span>Transformers.js / WebGPU</span></div>
         </aside>
