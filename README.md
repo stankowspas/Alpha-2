@@ -4,19 +4,42 @@
 **Developed by:** Spas Stankov  
 **Status:** internal Alpha development
 
-Alpha Chat 2.0 is a browser-first PWA with no production backend.
+Alpha Chat 2.0 is a local-first PWA being prepared for a Smol-family runtime and controlled web retrieval.
 
 ## Current runtime
 
 - Web UI: React + TypeScript + Vite.
-- AI runtime target: local browser inference.
-- No remote AI provider is configured in the current build.
-- No API key is required by the current build.
+- No production remote AI provider is configured.
+- No remote AI API key is required by the current Pages build.
 - Conversation history is stored locally.
+- Concrete legacy remote models are not part of the current model package.
 
-## Current model state
+## Selected model stack
 
-The previous remote model integration has been removed. `packages/models` now contains only the generic model contracts and an unconfigured placeholder adapter. A local browser model can be integrated next without reintroducing a backend.
+Primary text/reasoning model:
+
+- `HuggingFaceTB/SmolLM3-3B`
+
+Optional multimodal workers:
+
+- `HuggingFaceTB/SmolVLM2-2.2B-Instruct`
+- `HuggingFaceTB/SmolVLM2-500M-Video-Instruct`
+- `HuggingFaceTB/SmolVLM2-256M-Video-Instruct`
+
+The repository now contains the selected catalog, but the actual local inference runtime is not wired into the Pages UI yet.
+
+## Web search target
+
+The first web-search backend is SearXNG.
+
+```text
+User -> SmolLM3-3B -> search_web -> SearXNG -> results
+     -> selected page extraction -> evidence -> answer + sources
+```
+
+`@alpha/retrieval/searxng` contains the SearXNG JSON API provider. A controlled/self-hosted SearXNG instance is the intended deployment target.
+
+See `docs/architecture/SMOL_SEARCH_ARCHITECTURE.md` for the implementation plan and separation of responsibilities.
 
 ## Local development
 
@@ -35,10 +58,4 @@ npm run build
 
 ## PWA / GitHub Pages
 
-Production deployment is static:
-
-```text
-GitHub Pages -> Alpha 2 PWA -> local browser runtime
-```
-
-There is no production Python/HTTP AI backend and no remote AI credential in the Pages build.
+The current GitHub Pages deployment remains static. The Smol runtime/tool execution layer is the next implementation milestone; the UI must not claim that the model or web search is active until those components are actually connected.
