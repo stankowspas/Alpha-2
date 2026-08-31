@@ -11,6 +11,9 @@
   "dependencies": {
     "@alpha/memory": "*",
     "@alpha/branding": "*",
+    "@alpha/models": "*",
+    "@alpha/retrieval": "*",
+    "@alpha/search-agent": "*",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   }
