@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "alpha2-pwa-";
-const CACHE_VERSION = "v4";
+const CACHE_VERSION = "v5";
 const SHELL_CACHE = `${CACHE_PREFIX}${CACHE_VERSION}-shell`;
 const RUNTIME_CACHE = `${CACHE_PREFIX}${CACHE_VERSION}-runtime`;
 const ACTIVE_CACHES = new Set([SHELL_CACHE, RUNTIME_CACHE]);
@@ -25,7 +25,7 @@ self.addEventListener("install", (event) => {
       const url = new URL(path, self.registration.scope).toString();
       const response = await fetch(url, { cache: "reload" });
       if (!response.ok) throw new Error(`Failed to precache ${url}`);
-      await cache.put(url, response);
+      await cache.put(url, response.clone());
     }));
     await self.skipWaiting();
   })());
