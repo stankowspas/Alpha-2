@@ -10,6 +10,8 @@ import { visibleLoadPercent } from "./loading-percent";
 const CONVERSATION_ID = "alpha-default";
 const model = new Qwen25WebGpuAdapter();
 
+type TaskId = "internet-search" | null;
+
 async function generateLocal(prompt: string): Promise<string> {
   let answer = "";
   for await (const token of model.generate({
@@ -20,6 +22,11 @@ async function generateLocal(prompt: string): Promise<string> {
     temperature: 0.2
   })) answer += token;
   return answer.trim();
+}
+
+function runInternetSearch(query: string): boolean {
+  const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+  return window.open(url, "_blank", "noopener,noreferrer") !== null;
 }
 
 export function App() {
@@ -34,6 +41,7 @@ export function App() {
   const [answer, setAnswer] = useState("");
   const [sources, setSources] = useState<SmolWebSearchSource[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [selectedTask, setSelectedTask] = useState<TaskId>(null);
   const t = UI_MESSAGES[locale];
 
   const searxngUrl = (import.meta.env.VITE_SEARXNG_URL as string | undefined)?.trim();
@@ -54,10 +62,29 @@ export function App() {
     finally { setLoading(false); }
   }
 
+  function selectInternetSearch(): void {
+    setSelectedTask("internet-search");
+    setMessage("");
+    setAnswer("Задача: Търси в интернет. Въведи какво да намеря и натисни „Изпълни“.");
+    setSources([]);
+    setError(null);
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     const prompt = message.trim();
-    if (!prompt || !modelReady || busy) return;
+    if (!prompt || busy) return;
+
+    if (selectedTask === "internet-search") {
+      setError(null);
+      setSources([]);
+      const opened = runInternetSearch(prompt);
+      if (opened) setAnswer(`Стартирано интернет търсене за: “${prompt}”`);
+      else setError("Браузърът блокира новия прозорец. Разреши pop-ups за Alpha Chat и опитай отново.");
+      return;
+    }
+
+    if (!modelReady) return;
     setBusy(true); setError(null); setAnswer(""); setSources([]);
     try {
       if (searchAgent) { const result = await searchAgent.run(prompt); setAnswer(result.answer); setSources(result.sources); }
@@ -67,18 +94,23 @@ export function App() {
   }
 
   const loadPercent = visibleLoadPercent(loadProgress, modelReady);
+  const taskActive = selectedTask === "internet-search";
 
   return <main className="app-shell">
     <header className="topbar"><div><p className="eyebrow">{PRODUCT_BRANDING.version}</p><h1>{PRODUCT_BRANDING.officialName}</h1><p className="subtitle">Developed by {PRODUCT_BRANDING.developer}</p></div>
-      <div className="topbar-tools"><label className="language-picker"><span className="language-icon" aria-hidden="true">◎</span><span className="language-label">{t.language}</span><select value={locale} onChange={(event) => setLocale(event.target.value as UiLocale)} aria-label={t.language}>{UI_LANGUAGES.map((language) => <option key={language.code} value={language.code}>{language.label}</option>)}</select></label><div className="status-stack" aria-live="polite"><span className={`status ${modelReady ? "ok" : "warn"}`}>AI runtime: {modelReady ? "WebGPU ready" : loading ? `${loadPercent}%` : "not loaded"}</span><span className={`status ${searxngUrl ? "ok" : "warn"}`}>Search: {searxngUrl ? "SearXNG configured" : "local only"}</span></div></div></header>
+      <div className="topbar-tools"><label className="language-picker"><span className="language-icon" aria-hidden="true">◎</span><span className="language-label">{t.language}</span><select value={locale} onChange={(event) => setLocale(event.target.value as UiLocale)} aria-label={t.language}>{UI_LANGUAGES.map((language) => <option key={language.code} value={language.code}>{language.label}</option>)}</select></label><div className="status-stack" aria-live="polite"><span className={`status ${modelReady ? "ok" : "warn"}`}>AI runtime: {modelReady ? "WebGPU ready" : loading ? `${loadPercent}%` : "not loaded"}</span><span className={`status ${searxngUrl ? "ok" : "warn"}`}>Search: {searxngUrl ? "SearXNG configured" : "browser task ready"}</span></div></div></header>
     <section className="workspace"><aside className="sidebar" aria-label={t.conversations}>
+      <strong>Задачи</strong>
+      <button type="button" className="primary" onClick={selectInternetSearch}>Търси в интернет</button>
+      {taskActive && <p className="muted">Активна задача: интернет търсене</p>}
+      <hr />
       <button type="button" className="primary" onClick={() => void loadModel()} disabled={loading || modelReady}>{modelReady ? "Qwen2.5 зареден" : loading ? `Зареждане ${loadPercent}%` : "Зареди Qwen2.5-0.5B"}</button>
       {(loading || modelReady) && <div className="model-load" aria-live="polite"><div className="model-load-head"><strong>{modelReady ? "Готов" : `Зареждане · ${loadPercent}%`}</strong><span>{loadPercent}%</span></div><progress className="model-progress" max={100} value={loadPercent}>{loadPercent}%</progress><p className="muted model-load-text">{progressText}</p>{loading && <p className="muted model-load-note">Многоезичният модел се изтегля и след това се инициализира в WebGPU.</p>}</div>}
       {!loading && !modelReady && <p className="muted">{progressText}</p>}<p className="muted">{t.savedMessages}: {history.length}</p><div className="diagnostic"><strong>{t.provider}</strong><span>Transformers.js / WebGPU</span></div></aside>
-      <section className="chat-panel">{!answer && <div className="empty-state"><h2>Alpha Chat 2.0 · Qwen2.5-0.5B-Instruct</h2><p>Олекотен многоезичен модел за локална работа в браузъра чрез WebGPU. Интернет търсенето се активира само ако е конфигуриран SearXNG endpoint.</p></div>}
-        {answer && <article className="answer"><h3>Отговор</h3><pre>{answer}</pre>{sources.length > 0 && <details><summary>Източници ({sources.length})</summary><ol>{sources.map((source) => <li key={source.url}><a href={source.url} target="_blank" rel="noreferrer">{source.title}</a></li>)}</ol></details>}</article>}
+      <section className="chat-panel">{!answer && <div className="empty-state"><h2>Alpha Chat 2.0 · Автоматизации</h2><p>Избери задача от бутоните вляво. Първата задача „Търси в интернет“ работи директно през браузъра и не изисква зареден AI модел.</p></div>}
+        {answer && <article className="answer"><h3>{taskActive ? "Задача" : "Отговор"}</h3><pre>{answer}</pre>{sources.length > 0 && <details><summary>Източници ({sources.length})</summary><ol>{sources.map((source) => <li key={source.url}><a href={source.url} target="_blank" rel="noreferrer">{source.title}</a></li>)}</ol></details>}</article>}
         {error && <p className="notice" aria-live="polite">{error}</p>}
-        <form className="composer" onSubmit={(event) => void submit(event)}><label htmlFor="message">{t.message}</label><div className="composer-row"><textarea id="message" value={message} onChange={(event) => setMessage(event.target.value)} placeholder={modelReady ? t.placeholder : "Първо зареди Qwen2.5-0.5B"} rows={3} disabled={!modelReady || busy} /><button type="submit" className="primary" disabled={!modelReady || busy || !message.trim()}>{busy ? "Работи…" : t.send}</button></div></form>
+        <form className="composer" onSubmit={(event) => void submit(event)}><label htmlFor="message">{taskActive ? "Какво да намеря в интернет?" : t.message}</label><div className="composer-row"><textarea id="message" value={message} onChange={(event) => setMessage(event.target.value)} placeholder={taskActive ? "Например: новини за WebGPU" : modelReady ? t.placeholder : "Избери задача или зареди Qwen2.5-0.5B"} rows={3} disabled={busy || (!taskActive && !modelReady)} /><button type="submit" className="primary" disabled={busy || !message.trim() || (!taskActive && !modelReady)}>{busy ? "Работи…" : taskActive ? "Изпълни" : t.send}</button></div></form>
       </section></section>
   </main>;
 }
