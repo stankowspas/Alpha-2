@@ -75,7 +75,9 @@ export class Qwen25WebGpuAdapter implements ModelAdapter {
     onProgress?.(0, "Подготовка на Qwen2.5-0.5B…");
 
     const created = await pipeline("text-generation", MODEL_ID, {
-      dtype: "q4f16",
+      // Follow the official Transformers.js Qwen2.5 WebGPU example.
+      // q4 is the documented browser WebGPU choice for this model.
+      dtype: "q4",
       device: "webgpu",
       progress_callback: (raw: unknown) => {
         if (!raw || typeof raw !== "object") return;
@@ -129,9 +131,8 @@ export class Qwen25WebGpuAdapter implements ModelAdapter {
 
     const output = await this.#generator(messages, {
       max_new_tokens: Math.max(1, Math.trunc(input.maxTokens)),
-      temperature: input.temperature ?? 0.2,
-      do_sample: (input.temperature ?? 0.2) > 0,
-      repetition_penalty: 1.05
+      do_sample: false,
+      repetition_penalty: 1.08
     });
 
     if (input.signal?.aborted) throw new DOMException("Cancelled", "AbortError");
