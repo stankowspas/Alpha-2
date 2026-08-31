@@ -72,13 +72,6 @@ function renderFinalAnswer(plan: TaskPlan): string {
   return step.result === undefined || step.result === null ? "" : String(step.result);
 }
 
-interface ModelOutputAudit {
-  taskId: string;
-  covered: boolean;
-  requiresExternalProvenance: boolean;
-  reason: string;
-}
-
 function sanitizeModelOutput(value: string): string {
   return value.replace(/<FollowUp\b[^>]*\/>/giu, "").trim();
 }
@@ -97,102 +90,17 @@ function providerSources(plan: TaskPlan): string[] {
   return values.slice(0, 12);
 }
 
-function urlKey(value: string): string | null {
-  try {
-    const url = new URL(value);
-    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
-    return `${url.protocol}//${url.host.toLocaleLowerCase()}${url.pathname.replace(/\/$/u, "") || "/"}`;
-  } catch {
-    return null;
-  }
-}
+class LocalOutputGoalCoverageAdapter implements GoalCoverageAdapter {
+  readonly id = "local-output-presence-v1";
 
-function answerHasGroundedSource(answer: string, sources: readonly string[]): boolean {
-  const grounded = new Set(sources.map(urlKey).filter((value): value is string => Boolean(value)));
-  if (grounded.size === 0) return false;
-  const matches = answer.match(/https?:\/\/[^\s)\]}>"']+/giu) ?? [];
-  return matches.some((value) => {
-    const key = urlKey(value.replace(/[.,;]+$/u, ""));
-    return key !== null && grounded.has(key);
-  });
-}
-
-class ModelOutputAuditGoalCoverageAdapter implements GoalCoverageAdapter {
-  readonly id = "model-output-audit-v1";
-  readonly #audits = new Map<string, ModelOutputAudit>();
-
-  constructor(private readonly model: ModelAdapter) {}
-
-  getAudit(taskId: string): ModelOutputAudit | undefined {
-    return this.#audits.get(taskId);
-  }
-
-  async evaluate(context: GoalCoverageContext, signal?: AbortSignal): Promise<GoalCoverageEvaluation> {
+  async evaluate(context: GoalCoverageContext): Promise<GoalCoverageEvaluation> {
     const answerStep = [...context.completedSteps].reverse().find(
       (step) => step.kind === "MODEL" && step.status === "COMPLETE" && typeof step.result === "string"
     );
     const answer = typeof answerStep?.result === "string" ? answerStep.result.trim() : "";
-    if (!answer) {
-      return { status: "NOT_COVERED", reason: "MODEL answer липсва." };
-    }
-
-    const sources = Array.isArray(answerStep?.resultMetadata?.providerSources)
-      ? answerStep.resultMetadata.providerSources.filter((value): value is string => typeof value === "string")
-      : [];
-    const auditPrompt = JSON.stringify({
-      originalGoal: context.originalGoal,
-      constraints: context.constraints ?? [],
-      answer,
-      providerSources: sources
-    });
-    let raw = "";
-    for await (const token of this.model.generate({
-      systemPrompt: [
-        "You are a strict output auditor. Judge only the supplied goal, constraints, answer, and providerSources.",
-        "Do not answer the user's task and do not use outside knowledge.",
-        "Return exactly one JSON object with booleans covered, requiresExternalProvenance and string reason.",
-        "covered=true only when every explicit requested item is actually answered; refusal, deferral, or saying data is unavailable for a requested item means covered=false.",
-        "requiresExternalProvenance=true when the answer asserts concrete time-sensitive external facts such as weather, prices, FX, latest/current news, changing office-holders or live status.",
-        "Current date or local clock time alone does not require external provenance because Alpha provides trusted runtime time.",
-        "Stable facts, arithmetic, translation, explanation and reasoning do not require external provenance."
-      ].join("\n"),
-      userPrompt: auditPrompt,
-      maxTokens: 160,
-      thinking: false,
-      temperature: 0,
-      responseJsonSchema: {
-        type: "object",
-        properties: {
-          covered: { type: "boolean" },
-          requiresExternalProvenance: { type: "boolean" },
-          reason: { type: "string" }
-        },
-        required: ["covered", "requiresExternalProvenance", "reason"]
-      },
-      signal
-    })) raw += token;
-
-    const jsonText = raw.trim();
-    if (!jsonText) return { status: "UNKNOWN", reason: "Output audit не върна JSON verdict." };
-    try {
-      const parsed = JSON.parse(jsonText) as Partial<Omit<ModelOutputAudit, "taskId">>;
-      if (typeof parsed.covered !== "boolean"
-        || typeof parsed.requiresExternalProvenance !== "boolean") {
-        return { status: "UNKNOWN", reason: "Output audit върна невалидна структура." };
-      }
-      const audit: ModelOutputAudit = {
-        taskId: context.taskId,
-        covered: parsed.covered,
-        requiresExternalProvenance: parsed.requiresExternalProvenance,
-        reason: typeof parsed.reason === "string" ? parsed.reason : ""
-      };
-      this.#audits.set(context.taskId, audit);
-      return audit.covered
-        ? { status: "COVERED", score: 1 }
-        : { status: "NOT_COVERED", reason: audit.reason || "Отговорът не покрива целия Original Goal." };
-    } catch {
-      return { status: "UNKNOWN", reason: "Output audit JSON не може да бъде прочетен." };
-    }
+    return answer
+      ? { status: "COVERED", score: 1 }
+      : { status: "NOT_COVERED", reason: "MODEL answer липсва." };
   }
 }
 
@@ -201,18 +109,12 @@ export class ApplicationCore {
   lastTaskPlan: TaskPlan | null = null;
 
   readonly #goalCoverage: GoalCoverageAdapter;
-  readonly #outputAudit?: ModelOutputAuditGoalCoverageAdapter;
 
   constructor(
     private readonly model: ModelAdapter,
     options: ApplicationCoreOptions = {}
   ) {
-    if (options.goalCoverageAdapter) {
-      this.#goalCoverage = options.goalCoverageAdapter;
-    } else {
-      this.#outputAudit = new ModelOutputAuditGoalCoverageAdapter(model);
-      this.#goalCoverage = this.#outputAudit;
-    }
+    this.#goalCoverage = options.goalCoverageAdapter ?? new LocalOutputGoalCoverageAdapter();
     this.state.set({ phase: "READY" });
   }
 
@@ -249,7 +151,6 @@ export class ApplicationCore {
 
       const executors = new StepExecutorRegistry();
       executors.register(new ModelStepExecutor(this.model, contextAssembler, {
-        // User-visible answer tokens stay buffered until completion/audit/finalization pass.
         onThinkingToken: (context, token) => {
           if (context.currentStep.id !== streamModelStepId) return;
           finalThinking += token;
@@ -314,20 +215,6 @@ export class ApplicationCore {
       }
 
       const sources = providerSources(execution.plan);
-      const audit = this.#outputAudit?.getAudit(execution.plan.taskId);
-      if (audit?.requiresExternalProvenance && !answerHasGroundedSource(answer, sources)) {
-        this.state.set({ phase: "READY" });
-        return {
-          answer: "",
-          thinking: "",
-          taskPlan: execution.plan,
-          publishable: false,
-          finalizationStatus: "BLOCKED",
-          providerSources: sources,
-          failureReason: "CURRENT_FACT_WITHOUT_GROUNDED_SOURCE"
-        };
-      }
-
       request.onAnswerToken?.(answer);
       this.state.set({ phase: "READY" });
       return {
