@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "alpha2-pwa-";
-const CACHE_VERSION = "v10";
+const CACHE_VERSION = "v11";
 const SHELL_CACHE = `${CACHE_PREFIX}${CACHE_VERSION}-shell`;
 const RUNTIME_CACHE = `${CACHE_PREFIX}${CACHE_VERSION}-runtime`;
 const ACTIVE_CACHES = new Set([SHELL_CACHE, RUNTIME_CACHE]);
