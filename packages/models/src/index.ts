@@ -58,5 +58,5 @@ export class UnconfiguredModelAdapter implements ModelAdapter {
   async unload(): Promise<void> {}
 }
 
-export { SmolLM2WebGpuAdapter } from "./smollm2-webgpu";
+export { Qwen25WebGpuAdapter } from "./qwen25-webgpu";
 export * from "./smol";
