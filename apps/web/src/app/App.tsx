@@ -51,7 +51,7 @@ export function App() {
         <section className="chat-panel">
           <div className="empty-state">
             <h2>Alpha Chat 2.0</h2>
-            <p>Gemini е премахнат. Локалният browser модел още не е инсталиран.</p>
+            <p>Локалният browser модел още не е инсталиран.</p>
           </div>
 
           <p className="notice" aria-live="polite">MODEL_NOT_CONFIGURED</p>
