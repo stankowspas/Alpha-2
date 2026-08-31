@@ -160,10 +160,20 @@ class ModelOutputAuditGoalCoverageAdapter implements GoalCoverageAdapter {
       maxTokens: 160,
       thinking: false,
       temperature: 0,
+      responseJsonSchema: {
+        type: "object",
+        properties: {
+          covered: { type: "boolean" },
+          requiresExternalProvenance: { type: "boolean" },
+          reason: { type: "string" }
+        },
+        required: ["covered", "requiresExternalProvenance", "reason"],
+        additionalProperties: false
+      },
       signal
     })) raw += token;
 
-    const jsonText = raw.match(/\{[\s\S]*\}/u)?.[0];
+    const jsonText = raw.trim();
     if (!jsonText) return { status: "UNKNOWN", reason: "Output audit не върна JSON verdict." };
     try {
       const parsed = JSON.parse(jsonText) as Partial<Omit<ModelOutputAudit, "taskId">>;
