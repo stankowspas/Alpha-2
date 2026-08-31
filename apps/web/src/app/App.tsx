@@ -26,7 +26,10 @@ async function generateLocal(prompt: string): Promise<string> {
 
 function runInternetSearch(query: string): boolean {
   const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
-  return window.open(url, "_blank", "noopener,noreferrer") !== null;
+  const opened = window.open(url, "_blank");
+  if (!opened) return false;
+  try { opened.opener = null; } catch { /* cross-origin browsers may reject this assignment */ }
+  return true;
 }
 
 export function App() {
