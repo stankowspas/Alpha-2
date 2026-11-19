@@ -30,14 +30,29 @@ jobs:
           const matches = log.match(/https:\/\/[a-zA-Z0-9.-]+\.workers\.dev\b/g) || [];
           if (matches.length===0) {console.error('No temporary workers.dev URL was returned');process.exit(1);}
           fs.writeFileSync('/tmp/edge-probe-url',matches.at(-1));
-          console.log('Temporary Worker deployed; URL withheld to avoid sharing an ephemeral deployment');
+          console.log('Temporary Worker deployed to host:',new URL(matches.at(-1)).hostname);
           JS
       - name: Request actual Cloudflare edge execution and inspect results
         run: |
           set -euo pipefail
           URL=$(cat /tmp/edge-probe-url)
-          curl --fail-with-body --silent --show-error --max-time 70 \
-            --retry 2 --retry-delay 3 "$URL/" -o /tmp/edge-probe.json
+          STATUS=000
+          for attempt in 1 2 3 4 5 6 7 8; do
+            STATUS=$(curl --silent --show-error --max-time 45 -w '%{http_code}' \
+              "$URL/" -o /tmp/edge-probe.json) || STATUS=000
+            echo "Cloudflare temporary Worker reachability attempt $attempt: HTTP $STATUS"
+            if [ "$STATUS" = 200 ]; then break; fi
+            sleep 5
+          done
+          if [ "$STATUS" != 200 ]; then
+            echo "Cloudflare temporary Worker route not reachable after retries"
+            python3 - <<'PYRESPONSE'
+          from pathlib import Path
+          p=Path('/tmp/edge-probe.json')
+          print('HTTP response preview:',p.read_text(errors='replace')[:350] if p.exists() else 'missing')
+          PYRESPONSE
+            exit 1
+          fi
           python3 - <<'PY'
           import json
           x=json.load(open('/tmp/edge-probe.json'))
