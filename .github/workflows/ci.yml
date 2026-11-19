@@ -27,6 +27,9 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Use npm 11 (avoid npm 10 peer-resolution crash)
+        run: npm install --global npm@11.21.1
+
       - name: Install
         run: npm install --no-audit --no-fund
 
