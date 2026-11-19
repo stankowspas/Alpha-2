@@ -35,15 +35,15 @@ function readActiveConversation(chats: ConversationSummary[]): string {
 
 function recentMessages(history: ConversationMessage[], prompt: string): ChatLine[] {
   const prior: ChatLine[] = [];
-  for (const entry of history.slice(-8)) {
-    const content = entry.content.trim().slice(0, 1800);
+  for (const entry of history) {
+    const content = entry.content.trim();
     if (!content) continue;
     if (prior.at(-1)?.role === entry.role) prior.pop();
     prior.push({ role: entry.role, content });
   }
   if (prior.at(-1)?.role === "user") prior.pop();
   while (prior.length && prior[0].role !== "user") prior.shift();
-  return [...prior, { role: "user" as const, content: prompt }].slice(-9);
+  return [...prior, { role: "user" as const, content: prompt }];
 }
 
 export function App() {
@@ -126,12 +126,11 @@ export function App() {
     const prompt = message.trim();
     if (!prompt || busy || historyLoading) return;
     if (!modelReady) { setError(t.connectionError); return; }
-    if (prompt.length > 1800) return;
     setBusy(true);
     setError(null);
 
     try {
-      const result = await model.generateConversation(recentMessages(history, prompt), AbortSignal.timeout(90000));
+      const result = await model.generateConversation(recentMessages(history, prompt));
       const now = Date.now();
       const entries: ConversationMessage[] = [
         { id: crypto.randomUUID(), conversationId: activeId, role: "user", content: prompt, createdAt: new Date(now).toISOString() },
@@ -251,7 +250,7 @@ export function App() {
           <form className="composer" onSubmit={event => void submit(event)}>
             <label className="sr-only" htmlFor="chat-message">{t.message}</label>
             <textarea ref={textareaRef} id="chat-message" value={message} onChange={event => setMessage(event.target.value)}
-              onKeyDown={handleComposerKeyDown} maxLength={1800} rows={2}
+              onKeyDown={handleComposerKeyDown} rows={2}
               placeholder={modelReady ? t.placeholder : t.connecting} disabled={busy || !modelReady || historyLoading} />
             <button className="send-button" type="submit" disabled={busy || !modelReady || historyLoading || !message.trim()}
               aria-label={t.send}><span aria-hidden="true">➤</span><span className="send-label">{t.send}</span></button>
