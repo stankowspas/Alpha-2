@@ -33,18 +33,32 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --show-error --silent --max-time 90 \
-            -H "Origin: https://stankowspas.github.io" \
-            -H "Content-Type: application/json" \
-            -d '{"messages":[{"role":"user","content":"Отговори с едно кратко изречение на български: Работи ли тази връзка?"}]}' \
-            -o /tmp/answer.json \
-            "https://alpha2-cloud-ai-test.stankowspas.workers.dev/api/chat"
-          python3 - <<'PY'
+          for attempt in 1 2; do
+            http_code=$(curl --show-error --silent --max-time 90 \
+              -H "Origin: https://stankowspas.github.io" \
+              -H "Content-Type: application/json" \
+              -d '{"messages":[{"role":"user","content":"Отговори с едно кратко изречение на български: Работи ли тази връзка?"}]}' \
+              -o /tmp/answer.json -w '%{http_code}' \
+              "https://alpha2-cloud-ai-test.stankowspas.workers.dev/api/chat") || true
+            echo "Attempt $attempt: HTTP $http_code"
+            python3 - <<'PY'
+          import json
+          try:
+              d=json.load(open("/tmp/answer.json"))
+              print("Provider response:", {"error":d.get("error"),"model":d.get("model"),"hasAnswer":bool(d.get("answer")),"elapsedMs":d.get("elapsedMs")})
+          except Exception as e:
+              print("Invalid response:",str(e))
+          PY
+            if [ "$http_code" = 200 ]; then
+              python3 - <<'PY'
           import json
           d=json.load(open("/tmp/answer.json"))
-          text=d.get("answer")
-          assert isinstance(text,str) and text.strip(), "No actual model answer"
+          assert isinstance(d.get("answer"),str) and d["answer"].strip()
           assert d.get("model") == "@cf/google/gemma-4-26b-a4b-it"
-          print("Gemma 4 produced a valid response, chars:",len(text))
-          print("Worker elapsedMs:",d.get("elapsedMs"))
+          print("Gemma response validated; characters:",len(d["answer"]))
           PY
+              exit 0
+            fi
+            sleep 6
+          done
+          exit 1
