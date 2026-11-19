@@ -18,7 +18,7 @@ function readConversations(): ConversationSummary[] {
       const valid = stored.filter((value): value is ConversationSummary =>
         typeof value?.id === "string" && value.id.length < 90 &&
         typeof value?.title === "string" && value.title.length <= 100);
-      if (valid.length) return valid.slice(0, 100);
+      if (valid.length) return valid;
     }
   } catch { /* no access to storage */ }
   // Preserve messages saved by older versions under alpha-default.
@@ -105,7 +105,7 @@ export function App() {
   function openNewChat(): void {
     if (busy) return;
     const id = crypto.randomUUID();
-    setConversations(previous => [{ id, title: t.untitledChat }, ...previous].slice(0, 100));
+    setConversations(previous => [{ id, title: t.untitledChat }, ...previous]);
     setActiveId(id);
     setMessage("");
     setError(null);
