@@ -1,0 +1,50 @@
+name: One-time Gemma Worker Smoke Test
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  cloudflare-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Check live Cloudflare rate-limited status and CORS
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://alpha2-cloud-ai-test.stankowspas.workers.dev"
+          curl --fail --show-error --silent --max-time 25 -D /tmp/headers.txt -o /tmp/status.json \
+            -H "Origin: https://stankowspas.github.io" "$url/api/status"
+          python3 - <<'PY'
+          import json
+          d=json.load(open("/tmp/status.json"))
+          print("Status:",d)
+          assert d.get("available") is True, "Worker AI unavailable"
+          assert d.get("rateLimited") is True, "Rate limiter not enabled"
+          assert d.get("model") == "@cf/google/gemma-4-26b-a4b-it", "Different model"
+          hdr=open("/tmp/headers.txt").read().lower()
+          assert "access-control-allow-origin: https://stankowspas.github.io" in hdr, "CORS not configured"
+          PY
+      - name: Verify one real Gemma 4 generation from Alpha-2 origin
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --show-error --silent --max-time 90 \
+            -H "Origin: https://stankowspas.github.io" \
+            -H "Content-Type: application/json" \
+            -d '{"messages":[{"role":"user","content":"Отговори с едно кратко изречение на български: Работи ли тази връзка?"}]}' \
+            -o /tmp/answer.json \
+            "https://alpha2-cloud-ai-test.stankowspas.workers.dev/api/chat"
+          python3 - <<'PY'
+          import json
+          d=json.load(open("/tmp/answer.json"))
+          text=d.get("answer")
+          assert isinstance(text,str) and text.strip(), "No actual model answer"
+          assert d.get("model") == "@cf/google/gemma-4-26b-a4b-it"
+          print("Gemma 4 produced a valid response, chars:",len(text))
+          print("Worker elapsedMs:",d.get("elapsedMs"))
+          PY
