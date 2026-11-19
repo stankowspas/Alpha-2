@@ -10,33 +10,25 @@ export class CloudflareGemmaAdapter implements ModelAdapter {
     toolCallSupport: false, stopTokens: [], modelId: MODEL_ID,
   };
   loaded = false;
-  siteKey = "";
   lastGenerationMetadata?: ModelGenerationMetadata;
-  private verificationToken = "";
 
   async load(onProgress?: (progress: number, text: string) => void): Promise<void> {
     onProgress?.(0, "Проверка на Cloudflare AI…");
     const response = await fetch(`${CLOUDFLARE_ENDPOINT}/api/status`, { cache: "no-store" });
     if (!response.ok) throw new Error(`Cloudflare AI не е достъпен (HTTP ${response.status}).`);
-    const status: { available?: boolean; model?: string; siteKey?: string | null } = await response.json();
-    if (!status.available || !status.siteKey || status.model !== MODEL_ID) {
-      throw new Error("Cloudflare AI не е готов: необходимо е да се конфигурират Turnstile и ограниченията на заявките.");
+    const status: { available?: boolean; model?: string } = await response.json();
+    if (!status.available || status.model !== MODEL_ID) {
+      throw new Error("Cloudflare AI не е готов: необходимо е да се активират AI и ограниченията на заявките.");
     }
-    this.siteKey = status.siteKey;
     this.loaded = true;
-    onProgress?.(1, "Gemma 4 е свързан. Потвърди Turnstile, за да изпратиш въпрос.");
+    onProgress?.(1, "Gemma 4 е свързан. Можеш да изпратиш въпрос.");
   }
-
-  setVerificationToken(token: string): void { this.verificationToken = token; }
 
   async generateConversation(messages: ChatLine[], signal?: AbortSignal): Promise<string> {
     if (!this.loaded) throw new Error("Cloudflare AI не е свързан.");
-    const token = this.verificationToken;
-    this.verificationToken = "";
-    if (!token) throw new Error("Потвърди проверката Turnstile преди изпращане.");
     const response = await fetch(`${CLOUDFLARE_ENDPOINT}/api/chat`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages, turnstileToken: token }), cache: "no-store", signal,
+      body: JSON.stringify({ messages }), cache: "no-store", signal,
     });
     let data: { answer?: string; error?: string };
     try { data = await response.json(); } catch { throw new Error(`Невалиден отговор от Cloudflare (HTTP ${response.status}).`); }
@@ -56,8 +48,6 @@ export class CloudflareGemmaAdapter implements ModelAdapter {
 
   async unload(): Promise<void> {
     this.loaded = false;
-    this.siteKey = "";
-    this.verificationToken = "";
     this.lastGenerationMetadata = undefined;
   }
 }
