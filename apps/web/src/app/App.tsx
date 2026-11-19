@@ -4,7 +4,7 @@ import { listConversationMessages, saveConversationMessage, type ConversationMes
 import { CloudflareGemmaAdapter, type ChatLine } from "./cloudflare-gemma";
 import { TurnstileVerification } from "./turnstile";
 import { SearxngSearchProviderAdapter } from "@alpha/retrieval/searxng";
-import { SmolWebSearchAgent, type SmolWebSearchSource } from "@alpha/search-agent";
+import type { SmolWebSearchSource } from "@alpha/search-agent";
 import { getInitialLocale, persistLocale, UI_LANGUAGES, UI_MESSAGES, type UiLocale } from "../i18n";
 
 
@@ -47,10 +47,6 @@ export function App() {
     if (!searxngUrl) return null;
     return new SearxngSearchProviderAdapter({ baseUrl: searxngUrl, language: locale, categories: ["general"] });
   }, [locale, searxngUrl]);
-  const searchAgent = useMemo(() => {
-    if (!searchProvider) return null;
-    return new SmolWebSearchAgent(model, searchProvider);
-  }, [searchProvider]);
 
   useEffect(() => { void listConversationMessages(CONVERSATION_ID).then(setHistory).catch(() => undefined); }, []);
   useEffect(() => { persistLocale(locale); }, [locale]);
@@ -113,10 +109,14 @@ export function App() {
     model.setVerificationToken(verificationToken);
     try {
       let result: string;
-      if (searchAgent) {
-        const found = await searchAgent.run(prompt);
-        result = found.answer;
-        setSources(found.sources);
+      if (searchProvider) {
+        // One model request: Turnstile tokens are single-use.
+        const hits = await searchProvider.search({ query: prompt, maxResults: 6 });
+        setSources(hits.map(({title,url,snippet,publishedAt,retrievedAtUtc}) => ({title,url,snippet,publishedAt,retrievedAtUtc})));
+        const evidence = hits.map(hit => `${hit.title}\n${hit.url}\n${hit.snippet ?? ""}`).join("\n\n");
+        const prefix = `Въпрос: ${prompt}\n\nИзточници (може да са непълни или неточни):\n`;
+        const cloudPrompt = (prefix + evidence.slice(0, Math.max(0, 1800 - prefix.length))).slice(0, 1800);
+        result = await model.generateConversation([{ role: "user", content: cloudPrompt }], AbortSignal.timeout(90000));
       } else {
         result = await model.generateConversation(recentMessages(history, prompt), AbortSignal.timeout(90000));
       }
