@@ -6,7 +6,7 @@ export type ChatLine = { role: "user" | "assistant"; content: string };
 
 export class CloudflareGemmaAdapter implements ModelAdapter {
   readonly capabilities: ModelCapabilities = {
-    maxContext: 9000, thinkingSupport: false, structuredOutputSupport: false,
+    maxContext: 256000, thinkingSupport: true, structuredOutputSupport: false,
     toolCallSupport: false, stopTokens: [], modelId: MODEL_ID,
   };
   loaded = false;
@@ -16,9 +16,9 @@ export class CloudflareGemmaAdapter implements ModelAdapter {
     onProgress?.(0, "Проверка на Cloudflare AI…");
     const response = await fetch(`${CLOUDFLARE_ENDPOINT}/api/status`, { cache: "no-store" });
     if (!response.ok) throw new Error(`Cloudflare AI не е достъпен (HTTP ${response.status}).`);
-    const status: { available?: boolean; rateLimited?: boolean; model?: string } = await response.json();
-    if (!status.available || status.rateLimited !== true || status.model !== MODEL_ID) {
-      throw new Error("Cloudflare AI не е готов: необходимо е да се активират AI и ограниченията на заявките.");
+    const status: { available?: boolean; model?: string } = await response.json();
+    if (!status.available || status.model !== MODEL_ID) {
+      throw new Error("Cloudflare AI не е готов: липсва активна връзка с модела.");
     }
     this.loaded = true;
     onProgress?.(1, "Gemma 4 е свързан. Можеш да изпратиш въпрос.");
