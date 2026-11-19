@@ -23,7 +23,7 @@ function recentMessages(history: ConversationMessage[], prompt: string): ChatLin
   }
   if (prior.at(-1)?.role === "user") prior.pop();
   while (prior.length && prior[0].role !== "user") prior.shift();
-  return [...prior, { role: "user", content: prompt }].slice(-9);
+  return [...prior, { role: "user" as const, content: prompt }].slice(-9);
 }
 
 export function App() {
