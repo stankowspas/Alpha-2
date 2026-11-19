@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 type WidgetId = string | number;
 interface TurnstileApi {
   render: (element: HTMLElement, options: {
-    sitekey: string; action: string; callback: (token: string) => void;
+    sitekey: string; action: string; size: "flexible"; callback: (token: string) => void;
     "expired-callback": () => void; "error-callback": () => void;
   }) => WidgetId;
   reset: (widgetId: WidgetId) => void;
@@ -25,7 +25,7 @@ export function TurnstileVerification({ siteKey, resetVersion, onToken }: {
     const render = () => {
       if (disposed || !container.current || !apiWindow.turnstile || widgetId.current !== null) return;
       widgetId.current = apiWindow.turnstile.render(container.current, {
-        sitekey: siteKey, action: "alpha_chat",
+        sitekey: siteKey, action: "alpha_chat", size: "flexible",
         callback: (token) => callback.current(token),
         "expired-callback": () => callback.current(""),
         "error-callback": () => callback.current(""),
