@@ -132,6 +132,19 @@ button:focus-visible, textarea:focus-visible, select:focus-visible {
 .conversation-link.is-active { background: #242842; border-color: #424267; color: #f2f1ff; }
 .conversation-glyph { font-size: 17px; color: #8882cc; }
 .conversation-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conversation-row { display: flex; align-items: center; gap: 2px; min-width: 0; border-radius: 10px; }
+.conversation-row .conversation-link { min-width: 0; width: auto; flex: 1 1 auto; }
+.delete-chat {
+  display: grid; place-items: center; flex: 0 0 33px; width: 33px; height: 33px;
+  padding: 0; border: 1px solid transparent; border-radius: 8px;
+  background: transparent; color: #8493b3; opacity: .8;
+  transition: background .15s, color .15s, opacity .15s;
+}
+.delete-chat:hover:not(:disabled), .delete-chat:focus-visible {
+  background: #402b39; color: #ffc1bc; opacity: 1;
+}
+.conversation-row.is-active .delete-chat { color: #aca9da; }
+.conversation-row.is-active .delete-chat:hover:not(:disabled) { color: #ffc1bc; }
 .sidebar-footer { margin-top: 18px; border-top: 1px solid #28324a; padding: 20px 8px 0; }
 .model-meta { display: flex; gap: 12px; align-items: center; }
 .model-glyph { flex: 0 0 37px; height: 37px; border-radius: 11px; font-size: 18px; }
