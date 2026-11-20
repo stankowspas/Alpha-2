@@ -31,7 +31,7 @@ jobs:
               ["gpt-oss-120b","auto"]
             ];
             for(const [model,webSearch] of cases){
-              const out=await page.evaluate(async (model,webSearch)=>{
+              const out=await page.evaluate(async ({model,webSearch})=>{
                 const response=await fetch("https://alpha2-cloud-ai-test.stankowspas.workers.dev/api/chat",{
                   method:"POST",headers:{"Content-Type":"application/json"},
                   body:JSON.stringify({model,webSearch,messages:[{role:"user",content:"Провери в интернет официалния сайт на Python и посочи URL адреса."}]})
@@ -39,7 +39,7 @@ jobs:
                 const raw=await response.text();
                 let result;try{result=JSON.parse(raw)}catch{result={error:"Non-JSON response: "+raw.slice(0,180)}}
                 return {http:response.status,used:result.webSearch?.used??false,sources:result.webSearch?.sources?.length??0,links:result.webSearch?.sources?.slice(0,2).map(x=>x.url)??[],answer:result.answer?.slice(0,500),error:result.error??null};
-              },model,webSearch);
+              },{model,webSearch});
               console.log("SEARCH",model,webSearch,JSON.stringify(out));
             }
             console.log("JS errors",errors.slice(0,4));
