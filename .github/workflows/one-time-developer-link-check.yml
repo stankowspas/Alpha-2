@@ -1,0 +1,42 @@
+name: One-time verify live Developer website link
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Render production Alpha-2 header in Chromium
+        run: |
+          mkdir -p /tmp/linkcheck && cd /tmp/linkcheck
+          npm install --no-audit --no-fund --no-save playwright@1.57.0
+          npx playwright install --with-deps chromium
+          node - <<'JS'
+          const {chromium}=require('playwright');
+          (async()=>{
+            const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+            for(const width of [1365,390]){
+              const page=await browser.newPage({viewport:{width,height:768}});
+              await page.goto('https://stankowspas.github.io/Alpha-2/?v=17&check='+Date.now(),{waitUntil:'domcontentloaded',timeout:45000});
+              await page.waitForSelector('.brand-copy .developer-credit',{timeout:20000});
+              const result=await page.evaluate(()=>{
+                const h=document.querySelector('.brand-copy h1');
+                const a=document.querySelector('.brand-copy .developer-credit');
+                const p=document.querySelector('.brand-copy p');
+                const r=a.getBoundingClientRect();const s=getComputedStyle(a);
+                return {heading:h?.textContent,linkText:a?.textContent,href:a?.href,title:a?.getAttribute('title'),
+                  inOrder:!!h&&h.nextElementSibling===a&&a.nextElementSibling===p,
+                  display:s.display,visible:r.width>0&&r.height>0&&s.visibility!=='hidden',
+                  rect:{width:r.width,height:r.height,x:r.x,y:r.y},screenWidth:innerWidth,
+                  sourceLinkPresent:!!document.querySelector('.developer-credit')};
+              });
+              console.log('BROWSER VERIFIED',JSON.stringify(result));
+              if(!result.visible||!result.inOrder||result.linkText!=='Developer website'||result.href!=='https://stankowspas.github.io/'||result.title!=='Developer website')throw Error('Developer website link missing/incorrect');
+              await page.close();
+            }
+            await browser.close();
+          })().catch(err=>{console.error(err);process.exit(1)});
+          JS
