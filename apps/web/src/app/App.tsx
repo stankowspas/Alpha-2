@@ -4,6 +4,7 @@ import { clearConversation, listConversationMessages, saveConversationMessage, t
 import { CloudflareGemmaAdapter, MODEL_LABELS, MODEL_PROVIDERS, type AiModelId, type ChatLine, type WebSearchMode } from "./cloudflare-gemma";
 import { getInitialLocale, persistLocale, UI_LANGUAGES, UI_MESSAGES, type UiLocale } from "../i18n";
 import { DiscussionRoom } from "./DiscussionRoom";
+import { DISCUSSION_MESSAGES } from "./discussion-i18n";
 
 const LEGACY_CONVERSATION = "alpha-default";
 const CONVERSATIONS_KEY = "alpha2-conversation-list-v1";
@@ -80,6 +81,7 @@ export function App() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const t = UI_MESSAGES[locale];
+  const d = DISCUSSION_MESSAGES[locale];
   const activeModelName = MODEL_LABELS[selectedModel];
 
   useEffect(() => { persistLocale(locale); }, [locale]);
@@ -219,17 +221,17 @@ export function App() {
         <div className="brand-copy">
           <h1>{PRODUCT_BRANDING.version}</h1>
           <a className="developer-credit" href="https://stankowspas.github.io/"
-            title="Developer website">Developer website</a>
+            title={d.developerWebsite}>{d.developerWebsite}</a>
         </div>
       </div>
       <div className="topbar-tools">
-        <div className="view-switch" role="group" aria-label={locale === "bg" ? "Раздел" : "View"}>
+        <div className="view-switch" role="group" aria-label={d.viewGroup}>
           <button type="button" className={activeView === "chat" ? "is-active" : ""}
             aria-pressed={activeView === "chat"} disabled={busy || deletingId !== null}
-            onClick={() => setActiveView("chat")}>{locale === "bg" ? "Чат" : "Chat"}</button>
+            onClick={() => setActiveView("chat")}>{d.chatTab}</button>
           <button type="button" className={activeView === "discussion" ? "is-active" : ""}
             aria-pressed={activeView === "discussion"} disabled={busy || deletingId !== null}
-            onClick={() => setActiveView("discussion")}>{locale === "bg" ? "AI дискусии" : "AI discussions"}</button>
+            onClick={() => setActiveView("discussion")}>{d.discussionTab}</button>
         </div>
         <div className={`connection-status ${modelReady ? "is-ready" : "is-offline"}`} role="status">
           <span className="status-dot" aria-hidden="true" />
