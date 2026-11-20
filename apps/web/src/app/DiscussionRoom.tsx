@@ -2,7 +2,7 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 import "./discussion.css";
 import { CloudflareGemmaAdapter, MODEL_LABELS, type AiModelId, type WebSearchMode } from "./cloudflare-gemma";
 import {
-  buildSummaryMessages, buildTurnMessages, createDiscussionSession,
+  buildSummaryMessages, buildTurnMessages, canResumeDiscussion, createDiscussionSession,
   DISCUSSION_MODE_NAMES, DISCUSSION_PARTICIPANTS, roundSpeakers, summarySpeaker,
   type DiscussionEntry, type DiscussionMode, type DiscussionSession, type ParticipationMode,
 } from "./discussion-engine";
@@ -195,7 +195,7 @@ export function DiscussionRoom({ adapter, modelReady, webSearchMode, locale, onB
   async function run(initial?: DiscussionSession): Promise<void> {
     if (!ready || executingRef.current) return;
     let current = initial || sessionRef.current;
-    if (!current || current.status === "finished" || current.status === "stopped") return;
+    if (!current || !canResumeDiscussion(current.status)) return;
     executingRef.current = true;
     cancelledRef.current = false;
     setExecuting(true);
@@ -395,11 +395,11 @@ export function DiscussionRoom({ adapter, modelReady, webSearchMode, locale, onB
           {executing ? <>
             <button type="button" onClick={() => interrupt(false)}>{t.pause}</button>
             <button type="button" onClick={() => interrupt(true)}>{t.stop}</button>
-          </> : session.status !== "finished" && session.status !== "stopped" && <>
+          </> : canResumeDiscussion(session.status) && <>
             <button type="button" className="discussion-primary" onClick={() => void run()} disabled={!ready}>
               {session.status === "error" ? t.retry : t.resume}
             </button>
-            <button type="button" onClick={() => interrupt(true)}>{t.stop}</button>
+            {session.status !== "stopped" && <button type="button" onClick={() => interrupt(true)}>{t.stop}</button>}
           </>}
         </div>
       </div>
