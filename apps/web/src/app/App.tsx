@@ -217,7 +217,7 @@ export function App() {
     <header className="topbar">
       <div className="brand-group">
         <button className="mobile-menu" type="button" onClick={() => setSidebarOpen(!sidebarOpen)}
-          aria-label={t.conversations} aria-expanded={sidebarOpen}>☰</button>
+          aria-label={activeView === "chat" ? t.conversations : d.archive} aria-expanded={sidebarOpen}>☰</button>
         <div className="brand-icon" aria-hidden="true">A²</div>
         <div className="brand-copy">
           <h1>{PRODUCT_BRANDING.version}</h1>
@@ -287,7 +287,8 @@ export function App() {
       {activeView === "discussion"
         ? <DiscussionRoom adapter={model} modelReady={modelReady} webSearchMode={webSearchMode}
             locale={locale} sidebarContainer={discussionSidebarNode}
-            onSidebarNavigate={() => setSidebarOpen(false)} onBack={() => setActiveView("chat")} />
+            onSidebarNavigate={() => setSidebarOpen(false)}
+            onBack={() => { setActiveView("chat"); setSidebarOpen(false); }} />
         : <section className="chat-panel" aria-label={t.conversations}>
         <div className="chat-scroll" ref={scrollRef}>
           {historyLoading ? <div className="chat-loading" aria-live="polite">{t.connecting}</div> :
