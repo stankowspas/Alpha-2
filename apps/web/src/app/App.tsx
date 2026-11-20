@@ -1,6 +1,6 @@
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import { PRODUCT_BRANDING } from "@alpha/branding";
-import { listConversationMessages, saveConversationMessage, type ConversationMessage } from "@alpha/memory";
+import { clearConversation, listConversationMessages, saveConversationMessage, type ConversationMessage } from "@alpha/memory";
 import { CloudflareGemmaAdapter, type ChatLine, type WebSearchMode } from "./cloudflare-gemma";
 import { getInitialLocale, persistLocale, UI_LANGUAGES, UI_MESSAGES, type UiLocale } from "../i18n";
 
@@ -56,6 +56,7 @@ export function App() {
   const [modelReady, setModelReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [webSearchMode, setWebSearchMode] = useState<WebSearchMode>(() => {
@@ -114,7 +115,7 @@ export function App() {
   }
 
   function openNewChat(): void {
-    if (busy) return;
+    if (busy || deletingId) return;
     const id = crypto.randomUUID();
     setConversations(previous => [{ id, title: t.untitledChat }, ...previous]);
     setActiveId(id);
@@ -125,17 +126,39 @@ export function App() {
   }
 
   function selectChat(id: string): void {
-    if (busy || id === activeId) return;
+    if (busy || deletingId || id === activeId) return;
     setActiveId(id);
     setMessage("");
     setError(null);
     setSidebarOpen(false);
   }
 
+  async function deleteChat(chat: ConversationSummary): Promise<void> {
+    if (busy || deletingId || !conversations.some(item => item.id === chat.id)) return;
+    if (!window.confirm(`${t.confirmDeleteChat}\n\n${chat.title}`)) return;
+
+    setDeletingId(chat.id);
+    setError(null);
+    try {
+      await clearConversation(chat.id);
+      const remaining = conversations.filter(item => item.id !== chat.id);
+      const next = remaining.length ? remaining : [{ id: crypto.randomUUID(), title: t.untitledChat }];
+      setConversations(next);
+      if (activeId === chat.id) {
+        setActiveId(next[0].id);
+        setMessage("");
+      }
+    } catch {
+      setError(t.deleteChatError);
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     const prompt = message.trim();
-    if (!prompt || busy || historyLoading) return;
+    if (!prompt || busy || deletingId || historyLoading) return;
     if (!modelReady) { setError(t.connectionError); return; }
     setBusy(true);
     setError(null);
@@ -197,17 +220,27 @@ export function App() {
 
     <div className="workspace">
       <aside className={`sidebar ${sidebarOpen ? "is-open" : ""}`} aria-label={t.conversations}>
-        <button className="new-chat" type="button" onClick={openNewChat} disabled={busy}>
+        <button className="new-chat" type="button" onClick={openNewChat} disabled={busy || deletingId !== null}>
           <span aria-hidden="true">＋</span><span>{t.newChat}</span>
         </button>
         <h2 className="sidebar-heading">{t.conversations}</h2>
         <nav className="conversation-list" aria-label={t.conversations}>
-          {conversations.map(chat => <button key={chat.id} type="button" onClick={() => selectChat(chat.id)}
-            className={`conversation-link ${chat.id === activeId ? "is-active" : ""}`}
-            aria-current={chat.id === activeId ? "page" : undefined} disabled={busy}>
-            <span className="conversation-glyph" aria-hidden="true">▤</span>
-            <span className="conversation-title">{chat.title}</span>
-          </button>)}
+          {conversations.map(chat => <div className={`conversation-row ${chat.id === activeId ? "is-active" : ""}`} key={chat.id}>
+            <button type="button" onClick={() => selectChat(chat.id)}
+              className={`conversation-link ${chat.id === activeId ? "is-active" : ""}`}
+              aria-current={chat.id === activeId ? "page" : undefined} disabled={busy || deletingId !== null}>
+              <span className="conversation-glyph" aria-hidden="true">▤</span>
+              <span className="conversation-title">{chat.title}</span>
+            </button>
+            <button type="button" className="delete-chat" onClick={() => void deleteChat(chat)}
+              disabled={busy || deletingId !== null}
+              aria-label={`${t.deleteChat}: ${chat.title}`} title={t.deleteChat}>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"
+                strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M4 7h16M10 4h4M6.5 7l1 13h9l1-13M10 11v5M14 11v5" />
+              </svg>
+            </button>
+          </div>)}
         </nav>
         <div className="sidebar-footer">
           <div className="model-meta"><span className="model-glyph" aria-hidden="true">✦</span>
@@ -274,8 +307,8 @@ export function App() {
             <label className="sr-only" htmlFor="chat-message">{t.message}</label>
             <textarea ref={textareaRef} id="chat-message" value={message} onChange={event => setMessage(event.target.value)}
               onKeyDown={handleComposerKeyDown} rows={2}
-              placeholder={modelReady ? t.placeholder : t.connecting} disabled={busy || !modelReady || historyLoading} />
-            <button className="send-button" type="submit" disabled={busy || !modelReady || historyLoading || !message.trim()}
+              placeholder={modelReady ? t.placeholder : t.connecting} disabled={busy || deletingId !== null || !modelReady || historyLoading} />
+            <button className="send-button" type="submit" disabled={busy || deletingId !== null || !modelReady || historyLoading || !message.trim()}
               aria-label={t.send}><span aria-hidden="true">➤</span><span className="send-label">{t.send}</span></button>
           </form>
           <div className="composer-bottom">
