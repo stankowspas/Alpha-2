@@ -63,7 +63,7 @@ export function summarySpeaker(mode: DiscussionMode, master: AiModelId): AiModel
 /** Recognize an explicit provider rate/quota rejection, not generic network/server errors. */
 export function isProviderQuotaError(cause: unknown): boolean {
   const message = (cause instanceof Error ? cause.message : String(cause)).toLowerCase();
-  return /\\b429\\b|rate[ _-]?limit|too many requests|quota|resource_exhausted|квот|лимит.{0,45}заявк|заявк.{0,45}лимит/i.test(message);
+  return /\b429\b|rate[ _-]?limit|too many requests|quota|resource_exhausted|квот|лимит.{0,45}заявк|заявк.{0,45}лимит/i.test(message);
 }
 
 export function activeDiscussionModels(
