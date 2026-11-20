@@ -1,0 +1,63 @@
+/* Isolated AI discussion room: existing chat styles remain unchanged. */
+.view-switch { display: flex; gap: 3px; padding: 3px; border-radius: 11px; border: 1px solid #384260; background: #151c2d; }
+.view-switch button { border: 0; background: transparent; color: #a5b2cd; padding: 8px 11px; font-size: 12px; font-weight: 700; border-radius: 8px; white-space: nowrap; }
+.view-switch button.is-active { background: #3a336f; color: #f4f0ff; }
+.view-switch button:hover:not(.is-active):not(:disabled) { background: #232b42; }
+
+.discussion-header { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 15px clamp(18px, 4vw, 44px); border-bottom: 1px solid #253149; }
+.discussion-header h2 { margin: 0; font-size: 17px; color: #f2f3ff; }
+.discussion-header p { margin: 5px 0 0; font-size: 11px; color: #8899b8; }
+.discussion-header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.discussion-header-actions button, .discussion-run-actions button, .discussion-intervene button, .discussion-archive button {
+  border: 1px solid #4a5374; color: #e5eaff; border-radius: 9px;
+  background: #222b43; padding: 9px 12px; font-size: 12px; font-weight: 700;
+}
+.discussion-header-actions button:hover:not(:disabled), .discussion-run-actions button:hover:not(:disabled), .discussion-intervene button:hover:not(:disabled), .discussion-archive button:hover:not(:disabled) { background: #313b59; }
+.discussion-primary, .discussion-run-actions .discussion-primary { background: linear-gradient(140deg, #755bd6, #5141a1); color: #fff; border: 1px solid #8f7be4; border-radius: 10px; padding: 11px 18px; font-size: 13px; font-weight: 800; }
+.discussion-primary:hover:not(:disabled), .discussion-run-actions .discussion-primary:hover:not(:disabled) { filter: brightness(1.12); }
+.discussion-setup { flex: 1; min-height: 0; overflow-y: auto; width: min(760px, 100%); margin: 0 auto; padding: 35px 22px 20px; display: flex; flex-direction: column; gap: 13px; }
+.discussion-setup h3 { margin: 0 0 4px; font-size: 20px; }
+.discussion-setup > label, .discussion-form-grid label { color: #bac6e1; font-size: 12px; font-weight: 700; }
+.discussion-setup textarea, .discussion-intervene textarea { width: 100%; min-width: 0; resize: vertical; background: #141e30; color: #eff1ff; border: 1px solid #394666; padding: 13px 14px; border-radius: 11px; line-height: 1.5; }
+.discussion-setup textarea::placeholder, .discussion-intervene textarea::placeholder { color: #8090b0; }
+.discussion-form-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 17px; padding: 6px 0; }
+.discussion-form-grid label { display: flex; flex-direction: column; gap: 8px; }
+.discussion-form-grid select { color: #eff1ff; background: #192339; border: 1px solid #3c4864; border-radius: 9px; padding: 10px; min-width: 0; max-width: 100%; }
+.discussion-setup > .discussion-primary { align-self: flex-start; margin-top: 5px; }
+.discussion-hint { margin: 5px 0; color: #93a4c2; font-size: 12px; line-height: 1.55; }
+.discussion-notice { background: #332527; border: 1px solid #6c4448; border-radius: 9px; padding: 11px; color: #ffcbc3; font-size: 12px; }
+.discussion-session-info { flex: 0 0 auto; padding: 13px clamp(18px,4vw,44px); border-bottom: 1px solid #26334d; }
+.discussion-session-info strong { display: block; max-width: 920px; overflow-wrap: anywhere; font-size: 14px; }
+.discussion-session-info > div { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.discussion-session-info > div span { color: #bdc7e4; background: #232b42; border: 1px solid #34405d; border-radius: 7px; padding: 4px 7px; font-size: 11px; }
+.discussion-messages { gap: 20px; }
+.discussion-summary .message-bubble { border-color: #7061ba; background: #222341; }
+.discussion-round-label { color: #7f90b1; font-weight: 500; }
+.discussion-footer { flex: 0 0 auto; border-top: 1px solid #2a334d; background: #101727; padding: 11px clamp(18px,4vw,44px) 15px; display: flex; flex-direction: column; gap: 9px; }
+.discussion-status { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; color: #b8c8e3; font-size: 12px; }
+.discussion-status small { color: #ffc8bf; overflow-wrap: anywhere; }
+.discussion-intervene { display: flex; align-items: flex-end; gap: 8px; }
+.discussion-intervene textarea { min-height: 53px; max-height: 120px; }
+.discussion-intervene button { min-height: 43px; }
+.discussion-run-actions { display: flex; gap: 9px; }
+.discussion-archive { flex: 0 0 auto; border-top: 1px solid #28334e; padding: 9px clamp(18px,4vw,44px); font-size: 12px; color: #a2b2d1; max-height: 145px; overflow-y: auto; }
+.discussion-archive summary { cursor: pointer; font-weight: 700; }
+.discussion-archive-row { display: flex; gap: 8px; align-items: center; padding: 7px 0; border-bottom: 1px solid #27334d; }
+.discussion-archive-row span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.discussion-archive button { padding: 5px 8px; }
+@media (max-width: 850px) {
+  .view-switch button { padding: 7px 9px; font-size: 11px; }
+  .topbar-tools { gap: 8px; }
+}
+@media (max-width: 560px) {
+  .view-switch button { font-size: 10px; padding: 7px 5px; }
+  .discussion-header { padding: 11px; align-items: flex-start; flex-direction: column; gap: 9px; }
+  .discussion-header h2 { font-size: 15px; }
+  .discussion-header-actions button { padding: 6px 9px; font-size: 11px; }
+  .discussion-setup { padding: 19px 12px; }
+  .discussion-form-grid { grid-template-columns: 1fr; gap: 11px; }
+  .discussion-session-info { padding: 11px; }
+  .discussion-footer { padding: 10px 11px; }
+  .discussion-archive { padding: 8px 11px; }
+  .discussion-intervene button { padding: 9px; }
+}
