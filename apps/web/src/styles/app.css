@@ -259,3 +259,19 @@ button:focus-visible, textarea:focus-visible, select:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+
+/* Optional verified web sources and free web-search mode. */
+.web-sources { display: flex; flex-direction: column; gap: 7px; margin-top: 5px; min-width: 0; }
+.web-sources strong { color: #9eb0d7; font-size: 11px; }
+.web-sources a { color: #b4a9ff; font-size: 12px; line-height: 1.5; text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.web-sources a:hover { color: #e7e0ff; }
+.web-warning { margin: 5px 0 0; color: #eac392; font-size: 11px; line-height: 1.5; }
+.composer-bottom { max-width: 885px; margin: 9px auto 0; display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 8px 14px; }
+.composer-bottom .composer-hint { margin: 0; }
+.web-search-setting { display: inline-flex; align-items: center; gap: 6px; color: #95a5c5; font-size: 11px; }
+.web-search-setting select { border: 1px solid #394460; border-radius: 7px; background: #171f31; color: #e3e8fc; padding: 5px 8px; font-size: 11px; cursor: pointer; }
+@media (max-width: 560px) {
+  .composer-bottom { gap: 7px; justify-content: center; }
+  .web-sources a { font-size: 11px; }
+}
