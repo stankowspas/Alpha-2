@@ -19,6 +19,7 @@ export interface ConversationMessage {
   thinking?: string;
   sources?: Array<{ title: string; url: string; publishedAt?: string }>;
   searchWarning?: boolean;
+  modelId?: string; // AI model used for this reply; absent in older stored messages.
   createdAt: string;
 }
 
