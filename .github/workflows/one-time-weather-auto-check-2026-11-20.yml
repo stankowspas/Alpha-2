@@ -1,0 +1,34 @@
+name: One-time automatic Sofia weather web search check
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check live Tavily search for Sofia weather
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request,urllib.error
+          req=urllib.request.Request("https://alpha2-cloud-ai-test.stankowspas.workers.dev/api/chat",data=json.dumps({"messages":[{"role":"user","content":"какво е времето в софия"}],"webSearch":"auto"},ensure_ascii=False).encode(),method="POST",headers={"User-Agent":"Mozilla/5.0","Origin":"https://stankowspas.github.io","Accept":"application/json","Content-Type":"application/json"})
+          try:
+            with urllib.request.urlopen(req,timeout=105) as response:
+              status=response.status; data=json.load(response)
+          except urllib.error.HTTPError as error:
+            status=error.code; data=json.load(error)
+          web=data.get("webSearch") or {}
+          print("API HTTP:",status)
+          print("Search used:",web.get("used"))
+          print("Source count:",len(web.get("sources") or []))
+          print("Warning:",web.get("warning"))
+          print("Answer:",str(data.get("answer",""))[:1700])
+          for source in (web.get("sources") or [])[:5]:
+            print("SOURCE:",source.get("title"),"|",source.get("url"),"|",source.get("publishedAt"))
+          assert status==200 and bool(data.get("answer")),"Gemma reply missing"
+          assert web.get("used") is True and len(web.get("sources") or [])>0,"Automatic mode did not produce Tavily sources"
+          print("AUTOMATIC WEB SEARCH VERIFIED")
+          PY
