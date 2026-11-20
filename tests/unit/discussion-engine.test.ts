@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildSummaryMessages, buildTurnMessages, createDiscussionSession,
+  buildSummaryMessages, buildTurnMessages, canResumeDiscussion, createDiscussionSession,
   DISCUSSION_PARTICIPANTS, roundSpeakers, summarySpeaker,
   type DiscussionEntry, type DiscussionSession,
 } from "../../apps/web/src/app/discussion-engine";
@@ -15,6 +15,12 @@ function session(mode: DiscussionSession["mode"] = "discussion"): DiscussionSess
 }
 
 describe("AI discussion scheduling", () => {
+  it("allows explicit resumption after a stopped or failed provider request", () => {
+    for (const status of ["stopped", "error", "paused", "waiting"] as const) {
+      expect(canResumeDiscussion(status)).toBe(true);
+    }
+    expect(canResumeDiscussion("finished")).toBe(false);
+  });
   it("uses all three available providers in each of the four peer modes", () => {
     for (const mode of ["discussion", "debate", "expert", "review"] as const) {
       expect(roundSpeakers(mode, "gpt-oss-120b")).toEqual(DISCUSSION_PARTICIPANTS);
