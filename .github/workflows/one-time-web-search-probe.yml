@@ -29,7 +29,9 @@ jobs:
             except urllib.error.HTTPError as err:
               status=err.code
               raw=err.read(35000).decode("utf-8","replace")
-            try:out=json.loads(raw)\n            except json.JSONDecodeError:out={"error":"Non-JSON response: "+raw[:300]}\n            print("TEST",model,mode,"HTTP",status)
+            try:out=json.loads(raw)
+            except json.JSONDecodeError:out={"error":"Non-JSON response: "+raw[:300]}
+            print("TEST",model,mode,"HTTP",status)
             print("  webUsed",out.get("webSearch",{}).get("used"),"sourceCount",len(out.get("webSearch",{}).get("sources",[])),"warning",out.get("webSearch",{}).get("warning"))
             print("  Answer",repr(out.get("answer","")[:700]))
             print("  Error",repr(out.get("error","")[:200]))
