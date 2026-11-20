@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
+import "./discussion.css";
 import { CloudflareGemmaAdapter, MODEL_LABELS, type AiModelId, type WebSearchMode } from "./cloudflare-gemma";
 import {
   buildSummaryMessages, buildTurnMessages, createDiscussionSession,
