@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import "./discussion.css";
 import { DISCUSSION_MESSAGES } from "./discussion-i18n";
 import type { UiLocale } from "../i18n";
@@ -64,10 +65,12 @@ type Props = {
   modelReady: boolean;
   webSearchMode: WebSearchMode;
   locale: UiLocale;
+  sidebarContainer: HTMLElement | null;
+  onSidebarNavigate: () => void;
   onBack: () => void;
 };
 
-export function DiscussionRoom({ adapter, modelReady, webSearchMode, locale, onBack }: Props) {
+export function DiscussionRoom({ adapter, modelReady, webSearchMode, locale, sidebarContainer, onSidebarNavigate, onBack }: Props) {
   const t = DISCUSSION_MESSAGES[locale];
   const [topic, setTopic] = useState("");
   const [mode, setMode] = useState<DiscussionMode>("discussion");
@@ -128,6 +131,7 @@ export function DiscussionRoom({ adapter, modelReady, webSearchMode, locale, onB
     publish(null);
     setIntervention("");
     setTopic("");
+    onSidebarNavigate();
   }
 
   function restoreDiscussion(chosen: DiscussionSession): void {
@@ -138,6 +142,7 @@ export function DiscussionRoom({ adapter, modelReady, webSearchMode, locale, onB
     storeArchive(retained);
     publish(chosen.status === "running" ? { ...chosen, status: "paused" } : chosen);
     setIntervention("");
+    onSidebarNavigate();
   }
 
   function interrupt(stop: boolean): void {
@@ -283,14 +288,49 @@ export function DiscussionRoom({ adapter, modelReady, webSearchMode, locale, onB
     setIntervention("");
   }
 
-  return <section className="chat-panel discussion-panel" aria-label={t.heading}>
+  return <>
+    {sidebarContainer && createPortal(<>
+      <button className="new-chat" type="button" onClick={newDiscussion} disabled={executing}>
+        <span aria-hidden="true">＋</span><span>{t.new}</span>
+      </button>
+      <h2 className="sidebar-heading">{t.archive}</h2>
+      <nav className="conversation-list" aria-label={t.archive}>
+        {session && <div className="conversation-row is-active">
+          <button type="button" className="conversation-link is-active"
+            aria-current="page" onClick={onSidebarNavigate}>
+            <span className="conversation-glyph" aria-hidden="true">▤</span>
+            <span className="conversation-title">{session.topic}</span>
+          </button>
+        </div>}
+        {archive.map(item => <div className="conversation-row" key={item.id}>
+          <button type="button" className="conversation-link" onClick={() => restoreDiscussion(item)}
+            disabled={executing} title={item.topic}>
+            <span className="conversation-glyph" aria-hidden="true">▤</span>
+            <span className="conversation-title">{item.topic}</span>
+          </button>
+          <button type="button" className="delete-chat"
+            onClick={() => storeArchive(archive.filter(entry => entry.id !== item.id))}
+            disabled={executing} aria-label={t.delete + ": " + item.topic} title={t.delete}>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
+              stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"
+              strokeLinejoin="round" aria-hidden="true">
+              <path d="M4 7h16M10 4h4M6.5 7l1 13h9l1-13M10 11v5M14 11v5" />
+            </svg>
+          </button>
+        </div>)}
+        {!session && archive.length === 0 && <p className="discussion-sidebar-empty">{t.emptyArchive}</p>}
+      </nav>
+      <div className="sidebar-footer">
+        <p>{t.data}</p>
+      </div>
+    </>, sidebarContainer)}
+    <section className="chat-panel discussion-panel" aria-label={t.heading}>
     <div className="discussion-header">
       <div>
         <h2>{t.heading}</h2>
         <p>{t.data}</p>
       </div>
       <div className="discussion-header-actions">
-        {session && <button type="button" onClick={newDiscussion} disabled={executing}>{t.new}</button>}
         <button type="button" onClick={onBack}>{t.back}</button>
       </div>
     </div>
@@ -407,16 +447,6 @@ export function DiscussionRoom({ adapter, modelReady, webSearchMode, locale, onB
       </div>
     </>}
 
-    {archive.length > 0 && <details className="discussion-archive">
-      <summary>{t.archive} ({archive.length})</summary>
-      <div>
-        {archive.map(item => <div key={item.id} className="discussion-archive-row">
-          <span title={item.topic}>{item.topic}</span>
-          <button type="button" onClick={() => restoreDiscussion(item)} disabled={executing}>{t.restore}</button>
-          <button type="button" onClick={() => storeArchive(archive.filter(entry => entry.id !== item.id))}
-            disabled={executing} aria-label={t.delete + ": " + item.topic}>{t.delete}</button>
-        </div>)}
-      </div>
-    </details>}
-  </section>;
+    </section>
+  </>;
 }
