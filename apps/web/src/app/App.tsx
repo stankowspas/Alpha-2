@@ -1,13 +1,14 @@
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import { PRODUCT_BRANDING } from "@alpha/branding";
 import { clearConversation, listConversationMessages, saveConversationMessage, type ConversationMessage } from "@alpha/memory";
-import { CloudflareGemmaAdapter, type ChatLine, type WebSearchMode } from "./cloudflare-gemma";
+import { CloudflareGemmaAdapter, MODEL_LABELS, MODEL_PROVIDERS, type AiModelId, type ChatLine, type WebSearchMode } from "./cloudflare-gemma";
 import { getInitialLocale, persistLocale, UI_LANGUAGES, UI_MESSAGES, type UiLocale } from "../i18n";
 
 const LEGACY_CONVERSATION = "alpha-default";
 const CONVERSATIONS_KEY = "alpha2-conversation-list-v1";
 const ACTIVE_CONVERSATION_KEY = "alpha2-active-conversation-v1";
 const WEB_SEARCH_KEY = "alpha2-web-search-mode-v1";
+const SELECTED_MODEL_KEY = "alpha2-selected-ai-model-v1";
 const model = new CloudflareGemmaAdapter();
 
 interface ConversationSummary { id: string; title: string }
@@ -59,6 +60,13 @@ export function App() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [message, setMessage] = useState("");
+  const [selectedModel, setSelectedModel] = useState<AiModelId>(() => {
+    try {
+      const saved = localStorage.getItem(SELECTED_MODEL_KEY);
+      if (saved === "gpt-oss-120b" || saved === "gemini-flash-lite") return saved;
+    } catch { /* storage unavailable */ }
+    return "gemma4";
+  });
   const [webSearchMode, setWebSearchMode] = useState<WebSearchMode>(() => {
     try {
       const saved = localStorage.getItem(WEB_SEARCH_KEY);
@@ -70,8 +78,12 @@ export function App() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const t = UI_MESSAGES[locale];
+  const activeModelName = MODEL_LABELS[selectedModel];
 
   useEffect(() => { persistLocale(locale); }, [locale]);
+  useEffect(() => {
+    try { localStorage.setItem(SELECTED_MODEL_KEY, selectedModel); } catch { /* non-fatal */ }
+  }, [selectedModel]);
   useEffect(() => {
     try { localStorage.setItem(WEB_SEARCH_KEY, webSearchMode); } catch { /* non-fatal */ }
   }, [webSearchMode]);
@@ -106,6 +118,7 @@ export function App() {
     try {
       await model.load();
       setModelReady(true);
+      setSelectedModel(current => model.availableModels[current] ? current : "gemma4");
     } catch (cause) {
       setModelReady(false);
       setError(cause instanceof Error ? cause.message : String(cause));
@@ -164,11 +177,11 @@ export function App() {
     setError(null);
 
     try {
-      const result = await model.generateConversationWithSources(recentMessages(history, prompt), model.searchAvailable ? webSearchMode : "off");
+      const result = await model.generateConversationWithSources(recentMessages(history, prompt), model.searchAvailable ? webSearchMode : "off", undefined, selectedModel);
       const now = Date.now();
       const entries: ConversationMessage[] = [
         { id: crypto.randomUUID(), conversationId: activeId, role: "user", content: prompt, createdAt: new Date(now).toISOString() },
-        { id: crypto.randomUUID(), conversationId: activeId, role: "assistant", content: result.answer, sources: result.sources, searchWarning: result.searchWarning, createdAt: new Date(now + 1).toISOString() }
+        { id: crypto.randomUUID(), conversationId: activeId, role: "assistant", content: result.answer, sources: result.sources, searchWarning: result.searchWarning, modelId: result.modelId, createdAt: new Date(now + 1).toISOString() }
       ];
       setHistory(previous => [...previous, ...entries]);
       if (history.length === 0) {
@@ -245,7 +258,7 @@ export function App() {
         </nav>
         <div className="sidebar-footer">
           <div className="model-meta"><span className="model-glyph" aria-hidden="true">✦</span>
-            <div><strong>Gemma 4</strong><small>26B A4B · Cloudflare AI</small></div>
+            <div><strong>{activeModelName}</strong><small>{MODEL_PROVIDERS[selectedModel]}</small></div>
           </div>
           <p>{t.localHistory}</p>
           <small>© {new Date().getFullYear()} {PRODUCT_BRANDING.developer}</small>
@@ -267,7 +280,7 @@ export function App() {
             {history.map(item => <article className={`message-item ${item.role === "user" ? "from-user" : "from-ai"}`} key={item.id}>
               <div className="message-avatar" aria-hidden="true">{item.role === "user" ? "U" : "✦"}</div>
               <div className="message-body">
-                <div className="message-author">{item.role === "user" ? t.you : t.assistant}</div>
+                <div className="message-author">{item.role === "user" ? t.you : (item.modelId && Object.hasOwn(MODEL_LABELS, item.modelId) ? MODEL_LABELS[item.modelId as AiModelId] : t.assistant)}</div>
                 <div className="message-bubble">{item.content}</div>
                 {item.role === "assistant" && Boolean(item.sources?.length) && <div className="web-sources">
                   <strong>{t.webSources}</strong>
@@ -293,7 +306,7 @@ export function App() {
               <div className="message-item from-ai">
                 <div className="message-avatar" aria-hidden="true">✦</div>
                 <div className="message-body"><div className="message-author">{t.assistant}</div>
-                  <div className="message-bubble thinking-bubble"><span className="typing-dots" aria-hidden="true"><i /><i /><i /></span><span>{t.working}</span></div>
+                  <div className="message-bubble thinking-bubble"><span className="typing-dots" aria-hidden="true"><i /><i /><i /></span><span>{selectedModel === "gemma4" ? t.working : activeModelName + "…"}</span></div>
                 </div>
               </div>
             </div>}
@@ -313,6 +326,16 @@ export function App() {
               aria-label={t.send}><span aria-hidden="true">➤</span><span className="send-label">{t.send}</span></button>
           </form>
           <div className="composer-bottom">
+            {modelReady && <label className="web-search-setting" htmlFor="ai-model-selector">
+              <span aria-hidden="true">✦</span> {t.aiModelLabel}
+              <select id="ai-model-selector" value={selectedModel}
+                onChange={event => setSelectedModel(event.target.value as AiModelId)} disabled={busy || deletingId !== null}>
+                {(Object.keys(MODEL_LABELS) as AiModelId[]).map(id =>
+                  <option key={id} value={id} disabled={!model.availableModels[id]}>
+                    {MODEL_LABELS[id]}{model.availableModels[id] ? "" : " — " + t.modelUnavailable}
+                  </option>)}
+              </select>
+            </label>}
             {modelReady && model.searchAvailable && <label className="web-search-setting" htmlFor="web-search-mode">
               <span aria-hidden="true">◎</span> {t.webSearchLabel}
               <select id="web-search-mode" value={webSearchMode}
