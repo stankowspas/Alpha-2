@@ -1,0 +1,44 @@
+name: Temporary audit published Alpha 2 delete chat UI
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Check production HTML JS CSS and service worker content
+        run: |
+          python3 - <<'PY'
+          import re,time,urllib.request,urllib.parse
+          base='https://stankowspas.github.io/Alpha-2/'
+          def get(path):
+            url=urllib.parse.urljoin(base,path)
+            req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0','Cache-Control':'no-cache','Pragma':'no-cache'})
+            with urllib.request.urlopen(req,timeout=25) as r:
+              text=r.read().decode('utf-8','replace')
+              print('HTTP',r.status,'url',url,'age',r.headers.get('Age'),'cache-control',r.headers.get('Cache-Control'),'bytes',len(text))
+              return text
+          html=get('./?check-delete-ui='+str(int(time.time())))
+          js=re.findall(r'<script[^>]+src="([^"]+)"',html)
+          css=re.findall(r'<link[^>]+href="([^"]+\.css)"',html)
+          print('JS assets:',js)
+          print('CSS assets:',css)
+          assert js and css,'No script or CSS in published HTML'
+          for path in js:
+            script=get(path)
+            print('PUBLISHED JS HAS delete chat button:',bool('delete-chat' in script))
+            print('PUBLISHED JS HAS confirmation string:',bool('Действието е необратимо' in script))
+            print('PUBLISHED JS HAS IndexedDB clear:',bool('conversationId' in script))
+            assert 'delete-chat' in script,'Deployed JS does not include delete button'
+          for path in css:
+            style=get(path)
+            print('PUBLISHED CSS HAS trash button style:',bool('.delete-chat' in style))
+            assert '.delete-chat' in style,'Deployed CSS missing delete button styling'
+          sw=get('./sw.js?check='+str(int(time.time())))
+          print('Service worker v16:',bool('v16' in sw))
+          assert 'v16' in sw,'Service worker stale'
+          print('ALL DEPLOYED ASSETS CONTAIN DELETE UI')
+          PY
