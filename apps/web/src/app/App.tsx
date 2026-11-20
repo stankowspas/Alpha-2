@@ -53,6 +53,7 @@ function recentMessages(history: ConversationMessage[], prompt: string): ChatLin
 export function App() {
   const [locale, setLocale] = useState<UiLocale>(getInitialLocale);
   const [activeView, setActiveView] = useState<"chat" | "discussion">("chat");
+  const [discussionSidebarNode, setDiscussionSidebarNode] = useState<HTMLDivElement | null>(null);
   const [conversations, setConversations] = useState<ConversationSummary[]>(readConversations);
   const [activeId, setActiveId] = useState(() => readActiveConversation(readConversations()));
   const [history, setHistory] = useState<ConversationMessage[]>([]);
@@ -247,7 +248,8 @@ export function App() {
     </header>
 
     <div className="workspace">
-      <aside className={`sidebar ${sidebarOpen ? "is-open" : ""}`} aria-label={t.conversations}>
+      <aside className={`sidebar ${sidebarOpen ? "is-open" : ""}`} aria-label={activeView === "chat" ? t.conversations : d.archive}>
+        {activeView === "chat" ? <>
         <button className="new-chat" type="button" onClick={openNewChat} disabled={busy || deletingId !== null}>
           <span aria-hidden="true">＋</span><span>{t.newChat}</span>
         </button>
@@ -277,13 +279,15 @@ export function App() {
           <p>{t.localHistory}</p>
           <small>© {new Date().getFullYear()} {PRODUCT_BRANDING.developer}</small>
         </div>
+        </> : <div className="discussion-sidebar-slot" ref={setDiscussionSidebarNode} />}
       </aside>
-      {sidebarOpen && <button className="sidebar-backdrop" aria-label={t.conversations}
+      {sidebarOpen && <button className="sidebar-backdrop" aria-label={activeView === "chat" ? t.conversations : d.archive}
         type="button" onClick={() => setSidebarOpen(false)} />}
 
       {activeView === "discussion"
         ? <DiscussionRoom adapter={model} modelReady={modelReady} webSearchMode={webSearchMode}
-            locale={locale} onBack={() => setActiveView("chat")} />
+            locale={locale} sidebarContainer={discussionSidebarNode}
+            onSidebarNavigate={() => setSidebarOpen(false)} onBack={() => setActiveView("chat")} />
         : <section className="chat-panel" aria-label={t.conversations}>
         <div className="chat-scroll" ref={scrollRef}>
           {historyLoading ? <div className="chat-loading" aria-live="polite">{t.connecting}</div> :
