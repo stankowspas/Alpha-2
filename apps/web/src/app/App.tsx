@@ -201,6 +201,8 @@ export function App() {
         <div className="brand-icon" aria-hidden="true">A²</div>
         <div className="brand-copy">
           <h1>{PRODUCT_BRANDING.version}</h1>
+          <a className="developer-credit" href="https://stankowspas.github.io/"
+            title="Developer website">Developer website</a>
           <p>{t.tagline}</p>
         </div>
       </div>
