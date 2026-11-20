@@ -78,6 +78,8 @@ function validSession(value: unknown): value is DiscussionSession {
     && typeof v.maxRounds === "number" && v.maxRounds >= 1 && v.maxRounds <= 5
     && Number.isInteger(v.roundIndex) && Number.isInteger(v.speakerIndex)
     && v.roundIndex! >= 0 && v.speakerIndex! >= 0 && Array.isArray(v.entries)
+    && (v.limitedModels === undefined || (Array.isArray(v.limitedModels) &&
+      v.limitedModels.every(id => DISCUSSION_PARTICIPANTS.includes(id))))
     && typeof v.status === "string";
 }
 
