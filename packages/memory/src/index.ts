@@ -17,6 +17,8 @@ export interface ConversationMessage {
   role: "user" | "assistant";
   content: string;
   thinking?: string;
+  sources?: Array<{ title: string; url: string; publishedAt?: string }>;
+  searchWarning?: boolean;
   createdAt: string;
 }
 
