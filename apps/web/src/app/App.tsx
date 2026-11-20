@@ -5,6 +5,7 @@ import { CloudflareGemmaAdapter, MODEL_LABELS, MODEL_PROVIDERS, type AiModelId, 
 import { getInitialLocale, persistLocale, UI_LANGUAGES, UI_MESSAGES, type UiLocale } from "../i18n";
 import { DiscussionRoom } from "./DiscussionRoom";
 import { DISCUSSION_MESSAGES } from "./discussion-i18n";
+import { copyChatText } from "./chat-copy";
 
 const LEGACY_CONVERSATION = "alpha-default";
 const CONVERSATIONS_KEY = "alpha2-conversation-list-v1";
@@ -79,6 +80,7 @@ export function App() {
     return "auto";
   });
   const [error, setError] = useState<string | null>(null);
+  const [copyFeedback, setCopyFeedback] = useState<{ id: string; success: boolean } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const t = UI_MESSAGES[locale];
@@ -204,6 +206,11 @@ export function App() {
     }
   }
 
+  async function copyChatMessage(id: string, content: string): Promise<void> {
+    const success = await copyChatText(content);
+    setCopyFeedback({ id, success });
+  }
+
   function handleComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>): void {
     if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
@@ -304,6 +311,18 @@ export function App() {
               <div className="message-body">
                 <div className="message-author">{item.role === "user" ? t.you : (item.modelId && Object.hasOwn(MODEL_LABELS, item.modelId) ? MODEL_LABELS[item.modelId as AiModelId] : t.assistant)}</div>
                 <div className="message-bubble">{item.content}</div>
+                <div className="message-actions">
+                  <button type="button" className="message-copy" onClick={() => void copyChatMessage(item.id, item.content)}
+                    title={t.copyMessage} aria-label={`${t.copyMessage}: ${item.role === "user" ? t.you : t.assistant}`}>
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+                      strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <rect x="8" y="8" width="12" height="12" rx="2" />
+                      <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+                    </svg>
+                    <span aria-live="polite">{copyFeedback?.id === item.id
+                      ? (copyFeedback.success ? t.copied : t.copyFailed) : t.copyMessage}</span>
+                  </button>
+                </div>
                 {item.role === "assistant" && Boolean(item.sources?.length) && <div className="web-sources">
                   <strong>{t.webSources}</strong>
                   {item.sources?.filter(source => {
