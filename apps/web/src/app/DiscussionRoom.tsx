@@ -2,7 +2,8 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import "./discussion.css";
 import { DISCUSSION_MESSAGES } from "./discussion-i18n";
-import type { UiLocale } from "../i18n";
+import { copyChatText } from "./chat-copy";
+import { UI_MESSAGES, type UiLocale } from "../i18n";
 import { CloudflareGemmaAdapter, MODEL_LABELS, type AiModelId, type WebSearchMode } from "./cloudflare-gemma";
 import {
   activeDiscussionModels, availableSummarySpeaker, buildSummaryMessages, buildTurnMessages,
@@ -72,12 +73,14 @@ type Props = {
 
 export function DiscussionRoom({ adapter, modelReady, webSearchMode, locale, sidebarContainer, onSidebarNavigate, onBack }: Props) {
   const t = DISCUSSION_MESSAGES[locale];
+  const chatText = UI_MESSAGES[locale];
   const [topic, setTopic] = useState("");
   const [mode, setMode] = useState<DiscussionMode>("discussion");
   const [participation, setParticipation] = useState<ParticipationMode>("autonomous");
   const [master, setMaster] = useState<AiModelId>("gpt-oss-120b");
   const [rounds, setRounds] = useState(2);
   const [intervention, setIntervention] = useState("");
+  const [copyFeedback, setCopyFeedback] = useState<{ id: string; success: boolean } | null>(null);
   const [session, setSession] = useState<DiscussionSession | null>(loadActive);
   const [archive, setArchive] = useState<DiscussionSession[]>(loadArchive);
   const [executing, setExecuting] = useState(false);
@@ -272,6 +275,11 @@ export function DiscussionRoom({ adapter, modelReady, webSearchMode, locale, sid
     void run(next);
   }
 
+  async function copyDiscussionMessage(id: string, content: string): Promise<void> {
+    const success = await copyChatText(content);
+    setCopyFeedback({ id, success });
+  }
+
   function submitIntervention(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
     const content = intervention.trim();
@@ -389,6 +397,21 @@ export function DiscussionRoom({ adapter, modelReady, webSearchMode, locale, sid
                 {!entry.summary && <span className="discussion-round-label"> · {t.round} {entry.round}</span>}
               </div>
               <div className="message-bubble">{entry.content}</div>
+              <div className="message-actions">
+                <button type="button" className="message-copy"
+                  onClick={() => void copyDiscussionMessage(entry.id, entry.content)}
+                  title={chatText.copyMessage}
+                  aria-label={`${chatText.copyMessage}: ${entry.author === "user" ? t.youLabel
+                    : entry.summary ? t.summary : MODEL_LABELS[entry.modelId || "gemma4"]}`}>
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+                    strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="8" y="8" width="12" height="12" rx="2" />
+                    <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+                  </svg>
+                  <span aria-live="polite">{copyFeedback?.id === entry.id
+                    ? (copyFeedback.success ? chatText.copied : chatText.copyFailed) : chatText.copyMessage}</span>
+                </button>
+              </div>
               {Boolean(entry.sources?.length) && <div className="web-sources">
                 <strong>{t.sources}</strong>
                 {entry.sources?.filter(source => safeSource(source.url)).map((source, index) =>
