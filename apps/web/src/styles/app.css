@@ -207,6 +207,18 @@ button:focus-visible, textarea:focus-visible, select:focus-visible {
   background: #302c5d;
   border-radius: 17px 4px 17px 17px;
 }
+/* Copy controls apply only to saved messages in the ordinary chat. */
+.message-actions { display: flex; align-items: center; }
+.from-user .message-actions { justify-content: flex-end; }
+.message-copy {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: transparent; border: 1px solid transparent; border-radius: 7px;
+  padding: 4px 7px; color: #9faed0; font-size: 11px;
+  min-height: 27px;
+}
+.message-copy:hover { color: #f0efff; background: #222c43; border-color: #384467; }
+.message-copy svg { flex-shrink: 0; }
+
 .empty-state {
   min-height: 100%;
   display: flex;

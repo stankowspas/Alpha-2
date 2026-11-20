@@ -72,6 +72,9 @@ export interface UiMessages {
   deleteChatError: string;
   aiModelLabel: string;
   modelUnavailable: string;
+  copyMessage: string;
+  copied: string;
+  copyFailed: string;
 }
 
 export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
@@ -106,7 +109,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     confirmDeleteChat: "Да изтрия ли този разговор и всички съобщения в него? Действието е необратимо.",
     deleteChatError: "Неуспешно изтриване на разговора. Опитай отново.",
     aiModelLabel: "AI модел",
-    modelUnavailable: "неактивен"
+    modelUnavailable: "неактивен",
+    copyMessage: "Копирай",
+    copied: "Копирано",
+    copyFailed: "Неуспешно копиране"
   },
   en: {
     newChat: "New chat",
@@ -139,7 +145,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     confirmDeleteChat: "Delete this chat and all its messages? This cannot be undone.",
     deleteChatError: "Could not delete the chat. Please try again.",
     aiModelLabel: "AI model",
-    modelUnavailable: "unavailable"
+    modelUnavailable: "unavailable",
+    copyMessage: "Copy",
+    copied: "Copied",
+    copyFailed: "Copy failed"
   },
   sr: {
     newChat: "Нови разговор",
@@ -172,7 +181,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     confirmDeleteChat: "Обрисати овај разговор и све поруке? Ова радња се не може опозвати.",
     deleteChatError: "Брисање разговора није успело. Покушај поново.",
     aiModelLabel: "AI модел",
-    modelUnavailable: "недоступан"
+    modelUnavailable: "недоступан",
+    copyMessage: "Копирај",
+    copied: "Копирано",
+    copyFailed: "Копирање није успело"
   },
   de: {
     newChat: "Neuer Chat",
@@ -205,7 +217,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     confirmDeleteChat: "Diesen Chat mit allen Nachrichten endgültig löschen? Dies kann nicht rückgängig gemacht werden.",
     deleteChatError: "Chat konnte nicht gelöscht werden. Bitte erneut versuchen.",
     aiModelLabel: "KI-Modell",
-    modelUnavailable: "nicht verfügbar"
+    modelUnavailable: "nicht verfügbar",
+    copyMessage: "Kopieren",
+    copied: "Kopiert",
+    copyFailed: "Kopieren fehlgeschlagen"
   },
   fr: {
     newChat: "Nouvelle discussion",
@@ -238,7 +253,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     confirmDeleteChat: "Supprimer cette conversation et tous ses messages ? Cette action est irréversible.",
     deleteChatError: "Impossible de supprimer la conversation. Réessayez.",
     aiModelLabel: "Modèle IA",
-    modelUnavailable: "indisponible"
+    modelUnavailable: "indisponible",
+    copyMessage: "Copier",
+    copied: "Copié",
+    copyFailed: "Échec de la copie"
   },
   es: {
     newChat: "Nuevo chat",
@@ -271,7 +289,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     confirmDeleteChat: "¿Eliminar este chat y todos sus mensajes? Esta acción no se puede deshacer.",
     deleteChatError: "No se pudo eliminar el chat. Inténtalo de nuevo.",
     aiModelLabel: "Modelo de IA",
-    modelUnavailable: "no disponible"
+    modelUnavailable: "no disponible",
+    copyMessage: "Copiar",
+    copied: "Copiado",
+    copyFailed: "Error al copiar"
   },
   it: {
     newChat: "Nuova chat",
@@ -304,7 +325,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     confirmDeleteChat: "Eliminare questa chat e tutti i messaggi? L'azione è irreversibile.",
     deleteChatError: "Impossibile eliminare la chat. Riprova.",
     aiModelLabel: "Modello AI",
-    modelUnavailable: "non disponibile"
+    modelUnavailable: "non disponibile",
+    copyMessage: "Copia",
+    copied: "Copiato",
+    copyFailed: "Copia non riuscita"
   },
   pt: {
     newChat: "Nova conversa",
@@ -337,7 +361,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     confirmDeleteChat: "Eliminar esta conversa e todas as mensagens? Esta ação não pode ser desfeita.",
     deleteChatError: "Não foi possível eliminar a conversa. Tenta novamente.",
     aiModelLabel: "Modelo de IA",
-    modelUnavailable: "indisponível"
+    modelUnavailable: "indisponível",
+    copyMessage: "Copiar",
+    copied: "Copiado",
+    copyFailed: "Falha ao copiar"
   },
   ro: {
     newChat: "Conversație nouă",
@@ -370,7 +397,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     confirmDeleteChat: "Ștergi această conversație și toate mesajele? Acțiunea este ireversibilă.",
     deleteChatError: "Conversația nu a putut fi ștearsă. Încearcă din nou.",
     aiModelLabel: "Model AI",
-    modelUnavailable: "indisponibil"
+    modelUnavailable: "indisponibil",
+    copyMessage: "Copiază",
+    copied: "Copiat",
+    copyFailed: "Copiere eșuată"
   },
   el: {
     newChat: "Νέα συνομιλία",
@@ -403,7 +433,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     confirmDeleteChat: "Να διαγραφεί η συνομιλία και όλα τα μηνύματα; Η ενέργεια δεν αναιρείται.",
     deleteChatError: "Δεν ήταν δυνατή η διαγραφή. Δοκιμάστε ξανά.",
     aiModelLabel: "Μοντέλο AI",
-    modelUnavailable: "μη διαθέσιμο"
+    modelUnavailable: "μη διαθέσιμο",
+    copyMessage: "Αντιγραφή",
+    copied: "Αντιγράφηκε",
+    copyFailed: "Η αντιγραφή απέτυχε"
   },
   tr: {
     newChat: "Yeni sohbet",
@@ -436,7 +469,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     confirmDeleteChat: "Bu sohbet ve tüm mesajları silinsin mi? Bu işlem geri alınamaz.",
     deleteChatError: "Sohbet silinemedi. Tekrar deneyin.",
     aiModelLabel: "AI modeli",
-    modelUnavailable: "kullanılamıyor"
+    modelUnavailable: "kullanılamıyor",
+    copyMessage: "Kopyala",
+    copied: "Kopyalandı",
+    copyFailed: "Kopyalama başarısız"
   },
   ru: {
     newChat: "Новый чат",
@@ -469,7 +505,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     confirmDeleteChat: "Удалить этот чат и все сообщения? Это действие нельзя отменить.",
     deleteChatError: "Не удалось удалить чат. Повторите попытку.",
     aiModelLabel: "Модель ИИ",
-    modelUnavailable: "недоступна"
+    modelUnavailable: "недоступна",
+    copyMessage: "Копировать",
+    copied: "Скопировано",
+    copyFailed: "Не удалось скопировать"
   },
   uk: {
     newChat: "Новий чат",
@@ -502,7 +541,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     confirmDeleteChat: "Видалити цей чат і всі повідомлення? Цю дію неможливо скасувати.",
     deleteChatError: "Не вдалося видалити чат. Спробуйте ще раз.",
     aiModelLabel: "Модель ШІ",
-    modelUnavailable: "недоступна"
+    modelUnavailable: "недоступна",
+    copyMessage: "Копіювати",
+    copied: "Скопійовано",
+    copyFailed: "Не вдалося скопіювати"
   },
   pl: {
     newChat: "Nowy czat",
@@ -535,7 +577,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     confirmDeleteChat: "Usunąć ten czat i wszystkie wiadomości? Tej operacji nie można cofnąć.",
     deleteChatError: "Nie udało się usunąć czatu. Spróbuj ponownie.",
     aiModelLabel: "Model AI",
-    modelUnavailable: "niedostępny"
+    modelUnavailable: "niedostępny",
+    copyMessage: "Kopiuj",
+    copied: "Skopiowano",
+    copyFailed: "Nie udało się skopiować"
   },
   nl: {
     newChat: "Nieuwe chat",
@@ -568,6 +613,9 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     confirmDeleteChat: "Deze chat en alle berichten definitief verwijderen? Dit kan niet ongedaan worden gemaakt.",
     deleteChatError: "Kan de chat niet verwijderen. Probeer het opnieuw.",
     aiModelLabel: "AI-model",
-    modelUnavailable: "niet beschikbaar"
+    modelUnavailable: "niet beschikbaar",
+    copyMessage: "Kopiëren",
+    copied: "Gekopieerd",
+    copyFailed: "Kopiëren mislukt"
   }
 };
