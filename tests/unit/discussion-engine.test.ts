@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildSummaryMessages, buildTurnMessages, canResumeDiscussion, createDiscussionSession,
+  activeDiscussionModels, availableSummarySpeaker, buildSummaryMessages, buildTurnMessages,
+  canResumeDiscussion, createDiscussionSession, isProviderQuotaError, markModelQuotaLimited,
   DISCUSSION_PARTICIPANTS, roundSpeakers, summarySpeaker,
   type DiscussionEntry, type DiscussionSession,
 } from "../../apps/web/src/app/discussion-engine";
@@ -13,6 +14,74 @@ function session(mode: DiscussionSession["mode"] = "discussion"): DiscussionSess
     entries: [], createdAt: "2026-11-20T00:00:00.000Z",
   };
 }
+
+describe("Provider quota fallback", () => {
+  const available = {
+    gemma4: true,
+    "gpt-oss-120b": true,
+    "gemini-flash-lite": true,
+  };
+
+  it("recognizes the existing Groq free quota error and other explicit 429/rate limits", () => {
+    for (const message of [
+      "Groq: безплатната квота или лимитът на заявки е достигнат. Не е направен платен резервен опит.",
+      "Groq: Rate limit reached, please retry later.",
+      "HTTP 429 Too Many Requests",
+      "Gemini quota exceeded: RESOURCE_EXHAUSTED",
+    ]) {
+      expect(isProviderQuotaError(new Error(message))).toBe(true);
+    }
+  });
+
+  it("does not skip providers on unrelated failures or voluntary aborts", () => {
+    for (const message of [
+      "Cloudflare AI върна HTTP 500",
+      "NetworkError: Failed to fetch",
+      "AbortError",
+      "Invalid API key",
+      "Model is offline",
+    ]) {
+      expect(isProviderQuotaError(new Error(message))).toBe(false);
+    }
+  });
+
+  it("marks only exhausted models and keeps remaining providers without duplicates", () => {
+    const first = markModelQuotaLimited(session(), "gpt-oss-120b");
+    const duplicate = markModelQuotaLimited(first, "gpt-oss-120b");
+    expect(duplicate.limitedModels).toEqual(["gpt-oss-120b"]);
+    expect(activeDiscussionModels(duplicate, available)).toEqual(["gemma4", "gemini-flash-lite"]);
+    expect(duplicate.speakerIndex).toBe(0);
+    expect(duplicate.entries).toEqual([]);
+  });
+
+  it("lets two available models summarize when the selected Master is exhausted", () => {
+    const original = session("master");
+    const limited = markModelQuotaLimited(original, original.master);
+    expect(activeDiscussionModels(limited, available)).toEqual(["gemma4", "gemini-flash-lite"]);
+    expect(availableSummarySpeaker(limited, available)).toBe("gemma4");
+    const slavePrompt = buildTurnMessages(limited, "gemma4", 1)[0].content;
+    expect(slavePrompt).toContain("отпаднал");
+    expect(slavePrompt).not.toContain("Изпълни възложената");
+    expect(original.limitedModels).toBeUndefined();
+  });
+
+  it("falls back from Gemma 4 for synthesis and stops only when no models remain", () => {
+    const one = markModelQuotaLimited(session(), "gemma4");
+    expect(availableSummarySpeaker(one, available)).toBe("gpt-oss-120b");
+    const two = markModelQuotaLimited(one, "gpt-oss-120b");
+    expect(availableSummarySpeaker(two, available)).toBe("gemini-flash-lite");
+    const three = markModelQuotaLimited(two, "gemini-flash-lite");
+    expect(activeDiscussionModels(three, available)).toEqual([]);
+    expect(availableSummarySpeaker(three, available)).toBeUndefined();
+  });
+
+  it("supports provider status unavailability and older sessions with no excluded list", () => {
+    const partial = { ...available, "gpt-oss-120b": false };
+    expect(activeDiscussionModels(session(), partial)).toEqual(["gemma4", "gemini-flash-lite"]);
+    const other = { ...available, gemma4: false, "gpt-oss-120b": false };
+    expect(availableSummarySpeaker(session(), other)).toBe("gemini-flash-lite");
+  });
+});
 
 describe("AI discussion scheduling", () => {
   it("allows explicit resumption after a stopped or failed provider request", () => {
