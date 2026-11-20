@@ -70,6 +70,8 @@ export interface UiMessages {
   deleteChat: string;
   confirmDeleteChat: string;
   deleteChatError: string;
+  aiModelLabel: string;
+  modelUnavailable: string;
 }
 
 export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
@@ -102,7 +104,9 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webUnavailable: "Интернет търсенето не успя. Отговорът не е проверен с актуални източници.",
     deleteChat: "Изтрий разговор",
     confirmDeleteChat: "Да изтрия ли този разговор и всички съобщения в него? Действието е необратимо.",
-    deleteChatError: "Неуспешно изтриване на разговора. Опитай отново."
+    deleteChatError: "Неуспешно изтриване на разговора. Опитай отново.",
+    aiModelLabel: "AI модел",
+    modelUnavailable: "неактивен"
   },
   en: {
     newChat: "New chat",
@@ -133,7 +137,9 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webUnavailable: "Web search failed. This answer was not checked against current sources.",
     deleteChat: "Delete chat",
     confirmDeleteChat: "Delete this chat and all its messages? This cannot be undone.",
-    deleteChatError: "Could not delete the chat. Please try again."
+    deleteChatError: "Could not delete the chat. Please try again.",
+    aiModelLabel: "AI model",
+    modelUnavailable: "unavailable"
   },
   sr: {
     newChat: "Нови разговор",
@@ -164,7 +170,9 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webUnavailable: "Претрага није успела. Одговор није проверен помоћу актуелних извора.",
     deleteChat: "Избриши разговор",
     confirmDeleteChat: "Обрисати овај разговор и све поруке? Ова радња се не може опозвати.",
-    deleteChatError: "Брисање разговора није успело. Покушај поново."
+    deleteChatError: "Брисање разговора није успело. Покушај поново.",
+    aiModelLabel: "AI модел",
+    modelUnavailable: "недоступан"
   },
   de: {
     newChat: "Neuer Chat",
@@ -195,7 +203,9 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webUnavailable: "Websuche fehlgeschlagen. Die Antwort wurde nicht anhand aktueller Quellen geprüft.",
     deleteChat: "Chat löschen",
     confirmDeleteChat: "Diesen Chat mit allen Nachrichten endgültig löschen? Dies kann nicht rückgängig gemacht werden.",
-    deleteChatError: "Chat konnte nicht gelöscht werden. Bitte erneut versuchen."
+    deleteChatError: "Chat konnte nicht gelöscht werden. Bitte erneut versuchen.",
+    aiModelLabel: "KI-Modell",
+    modelUnavailable: "nicht verfügbar"
   },
   fr: {
     newChat: "Nouvelle discussion",
@@ -226,7 +236,9 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webUnavailable: "La recherche a échoué. Cette réponse n'a pas été vérifiée avec des sources récentes.",
     deleteChat: "Supprimer la conversation",
     confirmDeleteChat: "Supprimer cette conversation et tous ses messages ? Cette action est irréversible.",
-    deleteChatError: "Impossible de supprimer la conversation. Réessayez."
+    deleteChatError: "Impossible de supprimer la conversation. Réessayez.",
+    aiModelLabel: "Modèle IA",
+    modelUnavailable: "indisponible"
   },
   es: {
     newChat: "Nuevo chat",
@@ -257,7 +269,9 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webUnavailable: "La búsqueda ha fallado. La respuesta no se verificó con fuentes actuales.",
     deleteChat: "Eliminar chat",
     confirmDeleteChat: "¿Eliminar este chat y todos sus mensajes? Esta acción no se puede deshacer.",
-    deleteChatError: "No se pudo eliminar el chat. Inténtalo de nuevo."
+    deleteChatError: "No se pudo eliminar el chat. Inténtalo de nuevo.",
+    aiModelLabel: "Modelo de IA",
+    modelUnavailable: "no disponible"
   },
   it: {
     newChat: "Nuova chat",
@@ -288,7 +302,9 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webUnavailable: "Ricerca non riuscita. Risposta non verificata con fonti aggiornate.",
     deleteChat: "Elimina chat",
     confirmDeleteChat: "Eliminare questa chat e tutti i messaggi? L'azione è irreversibile.",
-    deleteChatError: "Impossibile eliminare la chat. Riprova."
+    deleteChatError: "Impossibile eliminare la chat. Riprova.",
+    aiModelLabel: "Modello AI",
+    modelUnavailable: "non disponibile"
   },
   pt: {
     newChat: "Nova conversa",
@@ -319,7 +335,9 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webUnavailable: "A pesquisa falhou. A resposta não foi verificada com fontes atuais.",
     deleteChat: "Eliminar conversa",
     confirmDeleteChat: "Eliminar esta conversa e todas as mensagens? Esta ação não pode ser desfeita.",
-    deleteChatError: "Não foi possível eliminar a conversa. Tenta novamente."
+    deleteChatError: "Não foi possível eliminar a conversa. Tenta novamente.",
+    aiModelLabel: "Modelo de IA",
+    modelUnavailable: "indisponível"
   },
   ro: {
     newChat: "Conversație nouă",
@@ -350,7 +368,9 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webUnavailable: "Căutarea a eșuat. Răspunsul nu a fost verificat cu surse actuale.",
     deleteChat: "Șterge conversația",
     confirmDeleteChat: "Ștergi această conversație și toate mesajele? Acțiunea este ireversibilă.",
-    deleteChatError: "Conversația nu a putut fi ștearsă. Încearcă din nou."
+    deleteChatError: "Conversația nu a putut fi ștearsă. Încearcă din nou.",
+    aiModelLabel: "Model AI",
+    modelUnavailable: "indisponibil"
   },
   el: {
     newChat: "Νέα συνομιλία",
@@ -381,7 +401,9 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webUnavailable: "Η αναζήτηση απέτυχε. Η απάντηση δεν επαληθεύτηκε από ενημερωμένες πηγές.",
     deleteChat: "Διαγραφή συνομιλίας",
     confirmDeleteChat: "Να διαγραφεί η συνομιλία και όλα τα μηνύματα; Η ενέργεια δεν αναιρείται.",
-    deleteChatError: "Δεν ήταν δυνατή η διαγραφή. Δοκιμάστε ξανά."
+    deleteChatError: "Δεν ήταν δυνατή η διαγραφή. Δοκιμάστε ξανά.",
+    aiModelLabel: "Μοντέλο AI",
+    modelUnavailable: "μη διαθέσιμο"
   },
   tr: {
     newChat: "Yeni sohbet",
@@ -412,7 +434,9 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webUnavailable: "Arama başarısız oldu. Yanıt güncel kaynaklarla doğrulanmadı.",
     deleteChat: "Sohbeti sil",
     confirmDeleteChat: "Bu sohbet ve tüm mesajları silinsin mi? Bu işlem geri alınamaz.",
-    deleteChatError: "Sohbet silinemedi. Tekrar deneyin."
+    deleteChatError: "Sohbet silinemedi. Tekrar deneyin.",
+    aiModelLabel: "AI modeli",
+    modelUnavailable: "kullanılamıyor"
   },
   ru: {
     newChat: "Новый чат",
@@ -443,7 +467,9 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webUnavailable: "Поиск не удался. Ответ не проверен по актуальным источникам.",
     deleteChat: "Удалить чат",
     confirmDeleteChat: "Удалить этот чат и все сообщения? Это действие нельзя отменить.",
-    deleteChatError: "Не удалось удалить чат. Повторите попытку."
+    deleteChatError: "Не удалось удалить чат. Повторите попытку.",
+    aiModelLabel: "Модель ИИ",
+    modelUnavailable: "недоступна"
   },
   uk: {
     newChat: "Новий чат",
@@ -474,7 +500,9 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webUnavailable: "Пошук не вдався. Відповідь не перевірена за актуальними джерелами.",
     deleteChat: "Видалити чат",
     confirmDeleteChat: "Видалити цей чат і всі повідомлення? Цю дію неможливо скасувати.",
-    deleteChatError: "Не вдалося видалити чат. Спробуйте ще раз."
+    deleteChatError: "Не вдалося видалити чат. Спробуйте ще раз.",
+    aiModelLabel: "Модель ШІ",
+    modelUnavailable: "недоступна"
   },
   pl: {
     newChat: "Nowy czat",
@@ -505,7 +533,9 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webUnavailable: "Wyszukiwanie nie powiodło się. Odpowiedź nie została zweryfikowana.",
     deleteChat: "Usuń czat",
     confirmDeleteChat: "Usunąć ten czat i wszystkie wiadomości? Tej operacji nie można cofnąć.",
-    deleteChatError: "Nie udało się usunąć czatu. Spróbuj ponownie."
+    deleteChatError: "Nie udało się usunąć czatu. Spróbuj ponownie.",
+    aiModelLabel: "Model AI",
+    modelUnavailable: "niedostępny"
   },
   nl: {
     newChat: "Nieuwe chat",
@@ -536,6 +566,8 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webUnavailable: "Zoeken mislukt. Het antwoord is niet gecontroleerd met actuele bronnen.",
     deleteChat: "Chat verwijderen",
     confirmDeleteChat: "Deze chat en alle berichten definitief verwijderen? Dit kan niet ongedaan worden gemaakt.",
-    deleteChatError: "Kan de chat niet verwijderen. Probeer het opnieuw."
+    deleteChatError: "Kan de chat niet verwijderen. Probeer het opnieuw.",
+    aiModelLabel: "AI-model",
+    modelUnavailable: "niet beschikbaar"
   }
 };
