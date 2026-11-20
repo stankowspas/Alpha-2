@@ -61,6 +61,12 @@ export interface UiMessages {
   localHistory: string;
   promptHint: string;
   connectionError: string;
+  webSearchLabel: string;
+  webAuto: string;
+  webOn: string;
+  webOff: string;
+  webSources: string;
+  webUnavailable: string;
 }
 
 export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
@@ -84,7 +90,13 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     untitledChat: "Нов разговор",
     localHistory: "Историята се запазва само в този браузър.",
     promptHint: "Enter — изпрати · Shift+Enter — нов ред",
-    connectionError: "Връзката с AI не е налична."
+    connectionError: "Връзката с AI не е налична.",
+    webSearchLabel: "Интернет търсене",
+    webAuto: "Автоматично",
+    webOn: "Винаги",
+    webOff: "Изключено",
+    webSources: "Уеб източници",
+    webUnavailable: "Интернет търсенето не успя. Отговорът не е проверен с актуални източници."
   },
   en: {
     newChat: "New chat",
@@ -106,7 +118,13 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     untitledChat: "New conversation",
     localHistory: "History is saved only in this browser.",
     promptHint: "Enter to send · Shift+Enter for a new line",
-    connectionError: "AI connection is unavailable."
+    connectionError: "AI connection is unavailable.",
+    webSearchLabel: "Web search",
+    webAuto: "Automatic",
+    webOn: "Always",
+    webOff: "Off",
+    webSources: "Web sources",
+    webUnavailable: "Web search failed. This answer was not checked against current sources."
   },
   sr: {
     newChat: "Нови разговор",
@@ -128,7 +146,13 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     untitledChat: "Нови разговор",
     localHistory: "Историја се чува само у овом прегледачу.",
     promptHint: "Enter — пошаљи · Shift+Enter — нови ред",
-    connectionError: "AI веза није доступна."
+    connectionError: "AI веза није доступна.",
+    webSearchLabel: "Претрага интернета",
+    webAuto: "Аутоматски",
+    webOn: "Увек",
+    webOff: "Искључено",
+    webSources: "Веб извори",
+    webUnavailable: "Претрага није успела. Одговор није проверен помоћу актуелних извора."
   },
   de: {
     newChat: "Neuer Chat",
@@ -150,7 +174,13 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     untitledChat: "Neue Unterhaltung",
     localHistory: "Der Verlauf wird nur in diesem Browser gespeichert.",
     promptHint: "Enter — senden · Shift+Enter — neue Zeile",
-    connectionError: "KI-Verbindung nicht verfügbar."
+    connectionError: "KI-Verbindung nicht verfügbar.",
+    webSearchLabel: "Websuche",
+    webAuto: "Automatisch",
+    webOn: "Immer",
+    webOff: "Aus",
+    webSources: "Webquellen",
+    webUnavailable: "Websuche fehlgeschlagen. Die Antwort wurde nicht anhand aktueller Quellen geprüft."
   },
   fr: {
     newChat: "Nouvelle discussion",
@@ -172,7 +202,13 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     untitledChat: "Nouvelle conversation",
     localHistory: "L’historique est conservé uniquement dans ce navigateur.",
     promptHint: "Entrée — envoyer · Maj+Entrée — nouvelle ligne",
-    connectionError: "Connexion IA indisponible."
+    connectionError: "Connexion IA indisponible.",
+    webSearchLabel: "Recherche Web",
+    webAuto: "Automatique",
+    webOn: "Toujours",
+    webOff: "Désactivée",
+    webSources: "Sources Web",
+    webUnavailable: "La recherche a échoué. Cette réponse n'a pas été vérifiée avec des sources récentes."
   },
   es: {
     newChat: "Nuevo chat",
@@ -194,7 +230,13 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     untitledChat: "Nueva conversación",
     localHistory: "El historial solo se guarda en este navegador.",
     promptHint: "Intro — enviar · Mayús+Intro — nueva línea",
-    connectionError: "Conexión con la IA no disponible."
+    connectionError: "Conexión con la IA no disponible.",
+    webSearchLabel: "Búsqueda web",
+    webAuto: "Automática",
+    webOn: "Siempre",
+    webOff: "Desactivada",
+    webSources: "Fuentes web",
+    webUnavailable: "La búsqueda ha fallado. La respuesta no se verificó con fuentes actuales."
   },
   it: {
     newChat: "Nuova chat",
@@ -216,7 +258,13 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     untitledChat: "Nuova conversazione",
     localHistory: "La cronologia viene salvata solo in questo browser.",
     promptHint: "Invio — invia · Maiusc+Invio — nuova riga",
-    connectionError: "Connessione AI non disponibile."
+    connectionError: "Connessione AI non disponibile.",
+    webSearchLabel: "Ricerca web",
+    webAuto: "Automatica",
+    webOn: "Sempre",
+    webOff: "Disattivata",
+    webSources: "Fonti web",
+    webUnavailable: "Ricerca non riuscita. Risposta non verificata con fonti aggiornate."
   },
   pt: {
     newChat: "Nova conversa",
@@ -238,7 +286,13 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     untitledChat: "Nova conversa",
     localHistory: "O histórico é guardado apenas neste navegador.",
     promptHint: "Enter — enviar · Shift+Enter — nova linha",
-    connectionError: "Ligação à IA indisponível."
+    connectionError: "Ligação à IA indisponível.",
+    webSearchLabel: "Pesquisa na Web",
+    webAuto: "Automática",
+    webOn: "Sempre",
+    webOff: "Desativada",
+    webSources: "Fontes web",
+    webUnavailable: "A pesquisa falhou. A resposta não foi verificada com fontes atuais."
   },
   ro: {
     newChat: "Conversație nouă",
@@ -260,7 +314,13 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     untitledChat: "Conversație nouă",
     localHistory: "Istoricul este salvat doar în acest browser.",
     promptHint: "Enter — trimite · Shift+Enter — rând nou",
-    connectionError: "Conexiunea AI nu este disponibilă."
+    connectionError: "Conexiunea AI nu este disponibilă.",
+    webSearchLabel: "Căutare web",
+    webAuto: "Automată",
+    webOn: "Întotdeauna",
+    webOff: "Dezactivată",
+    webSources: "Surse web",
+    webUnavailable: "Căutarea a eșuat. Răspunsul nu a fost verificat cu surse actuale."
   },
   el: {
     newChat: "Νέα συνομιλία",
@@ -282,7 +342,13 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     untitledChat: "Νέα συνομιλία",
     localHistory: "Το ιστορικό αποθηκεύεται μόνο σε αυτό το πρόγραμμα περιήγησης.",
     promptHint: "Enter — αποστολή · Shift+Enter — νέα γραμμή",
-    connectionError: "Η σύνδεση AI δεν είναι διαθέσιμη."
+    connectionError: "Η σύνδεση AI δεν είναι διαθέσιμη.",
+    webSearchLabel: "Αναζήτηση στον ιστό",
+    webAuto: "Αυτόματα",
+    webOn: "Πάντα",
+    webOff: "Απενεργοποίηση",
+    webSources: "Πηγές ιστού",
+    webUnavailable: "Η αναζήτηση απέτυχε. Η απάντηση δεν επαληθεύτηκε από ενημερωμένες πηγές."
   },
   tr: {
     newChat: "Yeni sohbet",
@@ -304,7 +370,13 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     untitledChat: "Yeni sohbet",
     localHistory: "Geçmiş yalnızca bu tarayıcıda saklanır.",
     promptHint: "Enter — gönder · Shift+Enter — yeni satır",
-    connectionError: "AI bağlantısı kullanılamıyor."
+    connectionError: "AI bağlantısı kullanılamıyor.",
+    webSearchLabel: "Web araması",
+    webAuto: "Otomatik",
+    webOn: "Her zaman",
+    webOff: "Kapalı",
+    webSources: "Web kaynakları",
+    webUnavailable: "Arama başarısız oldu. Yanıt güncel kaynaklarla doğrulanmadı."
   },
   ru: {
     newChat: "Новый чат",
@@ -326,7 +398,13 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     untitledChat: "Новый чат",
     localHistory: "История хранится только в этом браузере.",
     promptHint: "Enter — отправить · Shift+Enter — новая строка",
-    connectionError: "Соединение с ИИ недоступно."
+    connectionError: "Соединение с ИИ недоступно.",
+    webSearchLabel: "Поиск в интернете",
+    webAuto: "Автоматически",
+    webOn: "Всегда",
+    webOff: "Выключен",
+    webSources: "Веб-источники",
+    webUnavailable: "Поиск не удался. Ответ не проверен по актуальным источникам."
   },
   uk: {
     newChat: "Новий чат",
@@ -348,7 +426,13 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     untitledChat: "Нова розмова",
     localHistory: "Історія зберігається лише в цьому браузері.",
     promptHint: "Enter — надіслати · Shift+Enter — новий рядок",
-    connectionError: "З’єднання з ШІ недоступне."
+    connectionError: "З’єднання з ШІ недоступне.",
+    webSearchLabel: "Пошук в інтернеті",
+    webAuto: "Автоматично",
+    webOn: "Завжди",
+    webOff: "Вимкнено",
+    webSources: "Вебджерела",
+    webUnavailable: "Пошук не вдався. Відповідь не перевірена за актуальними джерелами."
   },
   pl: {
     newChat: "Nowy czat",
@@ -370,7 +454,13 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     untitledChat: "Nowa rozmowa",
     localHistory: "Historia jest zapisywana tylko w tej przeglądarce.",
     promptHint: "Enter — wyślij · Shift+Enter — nowa linia",
-    connectionError: "Połączenie z AI niedostępne."
+    connectionError: "Połączenie z AI niedostępne.",
+    webSearchLabel: "Wyszukiwanie w sieci",
+    webAuto: "Automatycznie",
+    webOn: "Zawsze",
+    webOff: "Wyłączone",
+    webSources: "Źródła internetowe",
+    webUnavailable: "Wyszukiwanie nie powiodło się. Odpowiedź nie została zweryfikowana."
   },
   nl: {
     newChat: "Nieuwe chat",
@@ -392,6 +482,12 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     untitledChat: "Nieuw gesprek",
     localHistory: "Geschiedenis wordt alleen in deze browser opgeslagen.",
     promptHint: "Enter — versturen · Shift+Enter — nieuwe regel",
-    connectionError: "AI-verbinding niet beschikbaar."
+    connectionError: "AI-verbinding niet beschikbaar.",
+    webSearchLabel: "Zoeken op internet",
+    webAuto: "Automatisch",
+    webOn: "Altijd",
+    webOff: "Uit",
+    webSources: "Webbronnen",
+    webUnavailable: "Zoeken mislukt. Het antwoord is niet gecontroleerd met actuele bronnen."
   }
 };
