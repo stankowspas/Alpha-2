@@ -1,0 +1,39 @@
+name: One-time check Tavily search across free models
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - name: Probe live Worker with Tavily enabled and auto
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import urllib.request,urllib.error,json
+          base="https://alpha2-cloud-ai-test.stankowspas.workers.dev/api/chat"
+          cases=[
+            ("gemma4","on","Потърси в интернет официалния сайт на Python, предостави уеб адреса и кратко пояснение."),
+            ("gpt-oss-120b","on","Потърси в интернет официалния сайт на Python, предостави уеб адреса и кратко пояснение."),
+            ("gemini-flash-lite","on","Потърси в интернет официалния сайт на Python, предостави уеб адреса и кратко пояснение."),
+            ("gpt-oss-120b","auto","Провери в интернет официалния сайт на Python и кажи URL адреса."),
+          ]
+          for model,mode,question in cases:
+            data={"model":model,"webSearch":mode,"messages":[{"role":"user","content":question}]}
+            req=urllib.request.Request(base,data=json.dumps(data,ensure_ascii=False).encode(),method="POST",headers={"Content-Type":"application/json","Origin":"https://stankowspas.github.io"})
+            try:
+              with urllib.request.urlopen(req,timeout=55) as r:out=json.loads(r.read(35000));status=r.status
+            except urllib.error.HTTPError as err:
+              status=err.code
+              out=json.loads(err.read(35000))
+            print("TEST",model,mode,"HTTP",status)
+            print("  webUsed",out.get("webSearch",{}).get("used"),"sourceCount",len(out.get("webSearch",{}).get("sources",[])),"warning",out.get("webSearch",{}).get("warning"))
+            print("  Answer",repr(out.get("answer","")[:700]))
+            print("  Error",repr(out.get("error","")[:200]))
+            for source in out.get("webSearch",{}).get("sources",[])[:2]:print("  source",source.get("url"))
+            if status!=200 or not out.get("webSearch",{}).get("used") or len(out.get("webSearch",{}).get("sources",[]))==0:
+              raise Exception("Live web search failed for "+model+" "+mode)
+          PY
