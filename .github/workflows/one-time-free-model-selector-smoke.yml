@@ -1,0 +1,44 @@
+name: One-time verify published free-model selector
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - name: Check Alpha-2 model picker in deployed Chromium
+        run: |
+          mkdir -p /tmp/alpha-models-smoke && cd /tmp/alpha-models-smoke
+          npm install --no-audit --no-fund --no-save playwright@1.57.0
+          npx playwright install --with-deps chromium
+          node - <<'JS'
+          const {chromium}=require("playwright");
+          (async () => {
+            const browser=await chromium.launch({headless:true,args:["--no-sandbox"]});
+            for(const width of [1365,390]){
+              const page=await browser.newPage({viewport:{width,height:850}});
+              page.on("pageerror",error=>console.log("Page JS ERROR:",error.message));
+              await page.goto("https://stankowspas.github.io/Alpha-2/?v=19&check="+Date.now(),{waitUntil:"domcontentloaded",timeout:50000});
+              await page.waitForSelector("#ai-model-selector",{timeout:40000});
+              const state=await page.evaluate(()=>{
+                const el=document.querySelector("#ai-model-selector");
+                const rect=el.getBoundingClientRect();
+                return {visible:rect.width>0&&rect.height>0&&getComputedStyle(el).visibility!=="hidden",
+                  current:el.value,
+                  options:[...el.options].map(x=>({value:x.value,disabled:x.disabled,text:x.textContent})),
+                  webSearch:!!document.querySelector("#web-search-mode"),
+                  link:document.querySelector(".developer-credit")?.getAttribute("href"),
+                  trashButtons:document.querySelectorAll(".delete-chat").length};
+              });
+              console.log("LIVE MODEL PICKER",width,JSON.stringify(state));
+              if(!state.visible||state.current!=="gemma4"||state.options.length!==3)throw Error("Selector not visible or wrong default");
+              if(state.options[0].disabled||!state.options[1].disabled||!state.options[2].disabled)throw Error("Model availability is wrong for deployed old Worker");
+              if(!state.webSearch||!state.trashButtons||state.link!=="https://stankowspas.github.io/")throw Error("Existing UI regression");
+              await page.close();
+            }
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
