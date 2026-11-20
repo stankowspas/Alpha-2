@@ -1,5 +1,7 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import "./discussion.css";
+import { DISCUSSION_MESSAGES } from "./discussion-i18n";
+import type { UiLocale } from "../i18n";
 import { CloudflareGemmaAdapter, MODEL_LABELS, type AiModelId, type WebSearchMode } from "./cloudflare-gemma";
 import {
   activeDiscussionModels, availableSummarySpeaker, buildSummaryMessages, buildTurnMessages,
@@ -11,62 +13,6 @@ import {
 const ACTIVE_KEY = "alpha2-discussion-active-v1";
 const ARCHIVE_KEY = "alpha2-discussion-archive-v1";
 const MAX_ARCHIVED = 15;
-
-const BG = {
-  heading: "AI дискусии", back: "Обикновен чат", new: "Нова дискусия",
-  setup: "Настройки на дискусията", topic: "Тема или въпрос",
-  topicHint: "Въведи тема, която трите модела да обсъдят…",
-  mode: "Режим", participation: "Управление", autonomous: "Автономно",
-  participatory: "С мое участие", master: "Избери Master", rounds: "Кръгове",
-  start: "Започни дискусията", resume: "Продължи", pause: "Пауза",
-  stop: "Стоп", summary: "Финално обобщение",
-  waiting: "Очаква твоето участие между кръговете", paused: "На пауза",
-  running: "Дискусията продължава", finished: "Приключена", stopped: "Прекратена",
-  error: "Грешка — можеш да опиташ отново", retry: "Опитай отново",
-  intervene: "Твоето мнение, въпрос или нова насока…", send: "Изпрати",
-  noModels: "Необходим е поне един активен AI модел. Недостъпни:",
-  round: "Кръг", of: "от", turns: "Изказвания", noTurns: "Подготвя се първото изказване…",
-  archive: "Предишни дискусии", restore: "Отвори", delete: "Изтрий",
-  emptyArchive: "Все още няма предишни дискусии.",
-  webOn: "Интернет търсенето използва текущата настройка на чата.",
-  webOff: "Интернет търсенето е изключено или недостъпно.",
-  data: "Историята на дискусиите се пази само в този браузър.",
-  waitingHint: "Можеш да се включиш или направо да продължиш към следващия кръг.",
-  abortHint: "Пауза прекъсва текущата заявка. Продължи я с бутона по-долу.",
-  sources: "Източници", searchWarning: "Уеб търсенето не е потвърдено за този отговор.",
-  finishedHint: "Можеш да започнеш нова дискусия или да отвориш предишна.",
-  quotaNotice: "Лимит на квотата — пропуснат модел:",
-  quotaRetry: "Пробвай отпадналите отново",
-  noneAvailable: "Няма останали достъпни модели. Историята е запазена; можеш ръчно да опиташ отпадналите модели отново.",
-};
-
-const EN: typeof BG = {
-  heading: "AI discussions", back: "Regular chat", new: "New discussion",
-  setup: "Discussion settings", topic: "Topic or question",
-  topicHint: "Enter a topic for the three models to discuss…",
-  mode: "Mode", participation: "Control", autonomous: "Autonomous",
-  participatory: "With my participation", master: "Choose Master", rounds: "Rounds",
-  start: "Start discussion", resume: "Continue", pause: "Pause",
-  stop: "Stop", summary: "Final summary",
-  waiting: "Waiting for your input between rounds", paused: "Paused",
-  running: "Discussion in progress", finished: "Completed", stopped: "Stopped",
-  error: "Error — you can try again", retry: "Retry",
-  intervene: "Your opinion, question or new direction…", send: "Send",
-  noModels: "At least one AI model must be active. Unavailable:",
-  round: "Round", of: "of", turns: "Contributions", noTurns: "Preparing the first contribution…",
-  archive: "Previous discussions", restore: "Open", delete: "Delete",
-  emptyArchive: "No previous discussions yet.",
-  webOn: "Web search uses the current chat setting.",
-  webOff: "Web search is disabled or unavailable.",
-  data: "Discussion history is stored only in this browser.",
-  waitingHint: "You can contribute or continue to the next round.",
-  abortHint: "Pause cancels the active request. Use Continue to retry it.",
-  sources: "Sources", searchWarning: "Web search was not confirmed for this response.",
-  finishedHint: "Start a new discussion or open a previous one.",
-  quotaNotice: "Quota limit — skipped model:",
-  quotaRetry: "Retry excluded models",
-  noneAvailable: "No active models remain. The history is saved; you can manually retry excluded models.",
-};
 
 function validSession(value: unknown): value is DiscussionSession {
   if (!value || typeof value !== "object") return false;
@@ -117,12 +63,12 @@ type Props = {
   adapter: CloudflareGemmaAdapter;
   modelReady: boolean;
   webSearchMode: WebSearchMode;
-  locale: string;
+  locale: UiLocale;
   onBack: () => void;
 };
 
 export function DiscussionRoom({ adapter, modelReady, webSearchMode, locale, onBack }: Props) {
-  const t = locale === "bg" ? BG : EN;
+  const t = DISCUSSION_MESSAGES[locale];
   const [topic, setTopic] = useState("");
   const [mode, setMode] = useState<DiscussionMode>("discussion");
   const [participation, setParticipation] = useState<ParticipationMode>("autonomous");
@@ -358,7 +304,7 @@ export function DiscussionRoom({ adapter, modelReady, webSearchMode, locale, onB
         <label>{t.mode}
           <select value={mode} onChange={event => setMode(event.target.value as DiscussionMode)}>
             {(Object.keys(DISCUSSION_MODE_NAMES) as DiscussionMode[]).map(id =>
-              <option key={id} value={id}>{DISCUSSION_MODE_NAMES[id]}</option>)}
+              <option key={id} value={id}>{t.modeNames[id]}</option>)}
           </select>
         </label>
         <label>{t.participation}
@@ -384,10 +330,10 @@ export function DiscussionRoom({ adapter, modelReady, webSearchMode, locale, onB
     </div> : <>
       <div className="discussion-session-info">
         <strong>{session.topic}</strong>
-        <div><span>{DISCUSSION_MODE_NAMES[session.mode]}</span><span>{session.participation === "autonomous" ? t.autonomous : t.participatory}</span>
+        <div><span>{t.modeNames[session.mode]}</span><span>{session.participation === "autonomous" ? t.autonomous : t.participatory}</span>
           <span>{t.round} {Math.min(session.roundIndex + 1, session.maxRounds)} {t.of} {session.maxRounds}</span>
           <span>{t.turns}: {session.entries.filter(entry => entry.author === "model" && !entry.summary).length}</span>
-          {session.mode === "master" && <span>Master: {MODEL_LABELS[session.master]}</span>}
+          {session.mode === "master" && <span>{t.masterRole}: {MODEL_LABELS[session.master]}</span>}
           {(session.limitedModels || []).map(id => <span key={id}>{t.quotaNotice} {MODEL_LABELS[id]}</span>)}
         </div>
       </div>
@@ -399,7 +345,7 @@ export function DiscussionRoom({ adapter, modelReady, webSearchMode, locale, onB
             <div className="message-body">
               <div className="message-author">
                 {entry.summary ? t.summary + " — " : ""}
-                {entry.author === "user" ? (locale === "bg" ? "Ти" : "You") : MODEL_LABELS[entry.modelId || "gemma4"]}
+                {entry.author === "user" ? t.youLabel : MODEL_LABELS[entry.modelId || "gemma4"]}
                 {!entry.summary && <span className="discussion-round-label"> · {t.round} {entry.round}</span>}
               </div>
               <div className="message-bubble">{entry.content}</div>
@@ -443,7 +389,7 @@ export function DiscussionRoom({ adapter, modelReady, webSearchMode, locale, onB
         {session.status === "finished" && <p className="discussion-hint">{t.finishedHint}</p>}
         {Boolean(session.limitedModels?.length) && <p className="discussion-notice" role="status">
           {t.quotaNotice} {session.limitedModels?.map(id => MODEL_LABELS[id]).join(", ")}
-          {session.mode === "master" && session.limitedModels?.includes(session.master) && <span> — {locale === "bg" ? "Останалите работят без Master." : "Remaining models proceed without the Master."}</span>}
+          {session.mode === "master" && session.limitedModels?.includes(session.master) && <span> — {t.masterUnavailable}</span>}
         </p>}
         <div className="discussion-run-actions">
           {!executing && session.status !== "finished" && Boolean(session.limitedModels?.length) &&
