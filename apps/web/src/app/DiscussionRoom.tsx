@@ -2,8 +2,9 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 import "./discussion.css";
 import { CloudflareGemmaAdapter, MODEL_LABELS, type AiModelId, type WebSearchMode } from "./cloudflare-gemma";
 import {
-  buildSummaryMessages, buildTurnMessages, canResumeDiscussion, createDiscussionSession,
-  DISCUSSION_MODE_NAMES, DISCUSSION_PARTICIPANTS, roundSpeakers, summarySpeaker,
+  activeDiscussionModels, availableSummarySpeaker, buildSummaryMessages, buildTurnMessages,
+  canResumeDiscussion, createDiscussionSession, isProviderQuotaError, markModelQuotaLimited,
+  DISCUSSION_MODE_NAMES, DISCUSSION_PARTICIPANTS, roundSpeakers,
   type DiscussionEntry, type DiscussionMode, type DiscussionSession, type ParticipationMode,
 } from "./discussion-engine";
 
@@ -23,7 +24,7 @@ const BG = {
   running: "Дискусията продължава", finished: "Приключена", stopped: "Прекратена",
   error: "Грешка — можеш да опиташ отново", retry: "Опитай отново",
   intervene: "Твоето мнение, въпрос или нова насока…", send: "Изпрати",
-  noModels: "Нужни са и трите активни AI модела. Липсва:",
+  noModels: "Необходим е поне един активен AI модел. Недостъпни:",
   round: "Кръг", of: "от", turns: "Изказвания", noTurns: "Подготвя се първото изказване…",
   archive: "Предишни дискусии", restore: "Отвори", delete: "Изтрий",
   emptyArchive: "Все още няма предишни дискусии.",
@@ -34,6 +35,9 @@ const BG = {
   abortHint: "Пауза прекъсва текущата заявка. Продължи я с бутона по-долу.",
   sources: "Източници", searchWarning: "Уеб търсенето не е потвърдено за този отговор.",
   finishedHint: "Можеш да започнеш нова дискусия или да отвориш предишна.",
+  quotaNotice: "Лимит на квотата — пропуснат модел:",
+  quotaRetry: "Пробвай отпадналите отново",
+  noneAvailable: "Няма останали достъпни модели. Историята е запазена; можеш ръчно да опиташ отпадналите модели отново.",
 };
 
 const EN: typeof BG = {
@@ -48,7 +52,7 @@ const EN: typeof BG = {
   running: "Discussion in progress", finished: "Completed", stopped: "Stopped",
   error: "Error — you can try again", retry: "Retry",
   intervene: "Your opinion, question or new direction…", send: "Send",
-  noModels: "All three AI models must be active. Missing:",
+  noModels: "At least one AI model must be active. Unavailable:",
   round: "Round", of: "of", turns: "Contributions", noTurns: "Preparing the first contribution…",
   archive: "Previous discussions", restore: "Open", delete: "Delete",
   emptyArchive: "No previous discussions yet.",
@@ -59,6 +63,9 @@ const EN: typeof BG = {
   abortHint: "Pause cancels the active request. Use Continue to retry it.",
   sources: "Sources", searchWarning: "Web search was not confirmed for this response.",
   finishedHint: "Start a new discussion or open a previous one.",
+  quotaNotice: "Quota limit — skipped model:",
+  quotaRetry: "Retry excluded models",
+  noneAvailable: "No active models remain. The history is saved; you can manually retry excluded models.",
 };
 
 function validSession(value: unknown): value is DiscussionSession {
@@ -131,7 +138,7 @@ export function DiscussionRoom({ adapter, modelReady, webSearchMode, locale, onB
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const missing = DISCUSSION_PARTICIPANTS.filter(id => !adapter.availableModels[id]);
-  const ready = modelReady && missing.length === 0;
+  const ready = modelReady && missing.length < DISCUSSION_PARTICIPANTS.length;
 
   function publish(next: DiscussionSession | null): void {
     sessionRef.current = next;
@@ -203,23 +210,40 @@ export function DiscussionRoom({ adapter, modelReady, webSearchMode, locale, onB
     publish(current);
     try {
       while (!cancelledRef.current) {
+        if (!activeDiscussionModels(current, adapter.availableModels).length) {
+          current = { ...current, status: "error", error: t.noneAvailable };
+          publish(current);
+          break;
+        }
+
         if (current.roundIndex >= current.maxRounds) {
-          const summarizer = summarySpeaker(current.mode, current.master);
+          // If the usual moderator (or Master) is quota-limited, another active model
+          // writes the summary. A second rate limit moves on to the last candidate.
+          const summarizer = availableSummarySpeaker(current, adapter.availableModels);
+          if (!summarizer) break;
           setSpeaking(summarizer);
           const controller = new AbortController();
           controllerRef.current = controller;
-          const result = await adapter.generateConversationWithSources(
-            buildSummaryMessages(current), adapter.searchAvailable ? webSearchMode : "off", controller.signal, summarizer,
-          );
-          if (cancelledRef.current || controller.signal.aborted) break;
-          const entry: DiscussionEntry = {
-            id: crypto.randomUUID(), author: "model", modelId: summarizer, summary: true,
-            round: current.maxRounds, content: result.answer, sources: result.sources,
-            searchWarning: result.searchWarning, createdAt: new Date().toISOString(),
-          };
-          current = { ...current, entries: [...current.entries, entry], status: "finished" };
-          publish(current);
-          break;
+          try {
+            const result = await adapter.generateConversationWithSources(
+              buildSummaryMessages(current), adapter.searchAvailable ? webSearchMode : "off", controller.signal, summarizer,
+            );
+            if (cancelledRef.current || controller.signal.aborted) break;
+            const entry: DiscussionEntry = {
+              id: crypto.randomUUID(), author: "model", modelId: summarizer, summary: true,
+              round: current.maxRounds, content: result.answer, sources: result.sources,
+              searchWarning: result.searchWarning, createdAt: new Date().toISOString(),
+            };
+            current = { ...current, entries: [...current.entries, entry], status: "finished" };
+            publish(current);
+            break;
+          } catch (cause) {
+            if (cancelledRef.current || controller.signal.aborted) break;
+            if (!isProviderQuotaError(cause)) throw cause;
+            current = markModelQuotaLimited(current, summarizer);
+            publish(current);
+            continue;
+          }
         }
 
         const speakers = roundSpeakers(current.mode, current.master);
@@ -234,22 +258,38 @@ export function DiscussionRoom({ adapter, modelReady, webSearchMode, locale, onB
         }
 
         const speaker = speakers[current.speakerIndex];
+        if (!adapter.availableModels[speaker] || (current.limitedModels || []).includes(speaker)) {
+          current = { ...current, speakerIndex: current.speakerIndex + 1 };
+          publish(current);
+          continue;
+        }
         setSpeaking(speaker);
         const controller = new AbortController();
         controllerRef.current = controller;
-        const result = await adapter.generateConversationWithSources(
-          buildTurnMessages(current, speaker, current.speakerIndex),
-          adapter.searchAvailable ? webSearchMode : "off", controller.signal, speaker,
-        );
-        if (cancelledRef.current || controller.signal.aborted) break;
-        const entry: DiscussionEntry = {
-          id: crypto.randomUUID(), author: "model", modelId: speaker,
-          round: current.roundIndex + 1, content: result.answer,
-          sources: result.sources, searchWarning: result.searchWarning,
-          createdAt: new Date().toISOString(),
-        };
-        current = { ...current, speakerIndex: current.speakerIndex + 1, entries: [...current.entries, entry] };
-        publish(current);
+        try {
+          const result = await adapter.generateConversationWithSources(
+            buildTurnMessages(current, speaker, current.speakerIndex),
+            adapter.searchAvailable ? webSearchMode : "off", controller.signal, speaker,
+          );
+          if (cancelledRef.current || controller.signal.aborted) break;
+          const entry: DiscussionEntry = {
+            id: crypto.randomUUID(), author: "model", modelId: speaker,
+            round: current.roundIndex + 1, content: result.answer,
+            sources: result.sources, searchWarning: result.searchWarning,
+            createdAt: new Date().toISOString(),
+          };
+          current = { ...current, speakerIndex: current.speakerIndex + 1, entries: [...current.entries, entry] };
+          publish(current);
+        } catch (cause) {
+          if (cancelledRef.current || controller.signal.aborted) break;
+          if (!isProviderQuotaError(cause)) throw cause;
+          current = {
+            ...markModelQuotaLimited(current, speaker),
+            speakerIndex: current.speakerIndex + 1,
+          };
+          publish(current);
+          // Do not retry this provider in later rounds of this discussion.
+        }
       }
     } catch (cause) {
       if (!cancelledRef.current) {
@@ -263,6 +303,13 @@ export function DiscussionRoom({ adapter, modelReady, webSearchMode, locale, onB
       setExecuting(false);
       setSpeaking(null);
     }
+  }
+
+  function retryLimitedModels(): void {
+    const current = sessionRef.current;
+    if (!current || executingRef.current || !current.limitedModels?.length || current.status === "finished") return;
+    // Only an explicit user action clears exclusions. No background quota retries.
+    publish({ ...current, limitedModels: [], status: "paused", error: undefined });
   }
 
   function start(): void {
@@ -339,6 +386,7 @@ export function DiscussionRoom({ adapter, modelReady, webSearchMode, locale, onB
           <span>{t.round} {Math.min(session.roundIndex + 1, session.maxRounds)} {t.of} {session.maxRounds}</span>
           <span>{t.turns}: {session.entries.filter(entry => entry.author === "model" && !entry.summary).length}</span>
           {session.mode === "master" && <span>Master: {MODEL_LABELS[session.master]}</span>}
+          {(session.limitedModels || []).map(id => <span key={id}>{t.quotaNotice} {MODEL_LABELS[id]}</span>)}
         </div>
       </div>
       <div className="chat-scroll" ref={scrollRef}>
@@ -391,7 +439,13 @@ export function DiscussionRoom({ adapter, modelReady, webSearchMode, locale, onB
         {session.status === "waiting" && <p className="discussion-hint">{t.waitingHint}</p>}
         {session.status === "paused" && <p className="discussion-hint">{t.abortHint}</p>}
         {session.status === "finished" && <p className="discussion-hint">{t.finishedHint}</p>}
+        {Boolean(session.limitedModels?.length) && <p className="discussion-notice" role="status">
+          {t.quotaNotice} {session.limitedModels?.map(id => MODEL_LABELS[id]).join(", ")}
+          {session.mode === "master" && session.limitedModels?.includes(session.master) && <span> — {locale === "bg" ? "Останалите работят без Master." : "Remaining models proceed without the Master."}</span>}
+        </p>}
         <div className="discussion-run-actions">
+          {!executing && session.status !== "finished" && Boolean(session.limitedModels?.length) &&
+            <button type="button" onClick={retryLimitedModels}>{t.quotaRetry}</button>}
           {executing ? <>
             <button type="button" onClick={() => interrupt(false)}>{t.pause}</button>
             <button type="button" onClick={() => interrupt(true)}>{t.stop}</button>
