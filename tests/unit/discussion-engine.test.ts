@@ -50,6 +50,8 @@ describe("AI discussion prompting", () => {
     const [message] = buildTurnMessages(s, "gpt-oss-120b", 1);
     expect(message.role).toBe("user");
     expect(message.content).toContain(topic);
+    expect(message.content.slice(0, 400).trim()).toBe(`Тема: ${topic}`);
+    expect(message.content.slice(0, 400)).not.toContain("AI дискусия");
     expect(message.content).toContain("GPT-OSS 120B");
     expect(message.content).toContain("Предишно мнение");
     expect(message.content).toContain("кръг 1 от 2");
@@ -105,6 +107,7 @@ describe("AI discussion prompting", () => {
       content: "Спорен аргумент", createdAt: s.createdAt }];
     const [message] = buildSummaryMessages(s);
     expect(message.content).toContain("Спорен аргумент");
+    expect(message.content.slice(0, 400).trim()).toBe(`Тема: ${topic}`);
     expect(message.content).toContain("не са постигнали");
   });
 
