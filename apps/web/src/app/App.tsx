@@ -134,6 +134,7 @@ export function App() {
     const id = crypto.randomUUID();
     setConversations(previous => [{ id, title: t.untitledChat }, ...previous]);
     setActiveId(id);
+    setActiveView("chat");
     setMessage("");
     setError(null);
     setSidebarOpen(false);
@@ -141,8 +142,9 @@ export function App() {
   }
 
   function selectChat(id: string): void {
-    if (busy || deletingId || id === activeId) return;
+    if (busy || deletingId || (id === activeId && activeView === "chat")) return;
     setActiveId(id);
+    setActiveView("chat");
     setMessage("");
     setError(null);
     setSidebarOpen(false);
