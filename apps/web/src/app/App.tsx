@@ -3,6 +3,7 @@ import { PRODUCT_BRANDING } from "@alpha/branding";
 import { clearConversation, listConversationMessages, saveConversationMessage, type ConversationMessage } from "@alpha/memory";
 import { CloudflareGemmaAdapter, MODEL_LABELS, MODEL_PROVIDERS, type AiModelId, type ChatLine, type WebSearchMode } from "./cloudflare-gemma";
 import { getInitialLocale, persistLocale, UI_LANGUAGES, UI_MESSAGES, type UiLocale } from "../i18n";
+import { DiscussionRoom } from "./DiscussionRoom";
 
 const LEGACY_CONVERSATION = "alpha-default";
 const CONVERSATIONS_KEY = "alpha2-conversation-list-v1";
@@ -50,6 +51,7 @@ function recentMessages(history: ConversationMessage[], prompt: string): ChatLin
 
 export function App() {
   const [locale, setLocale] = useState<UiLocale>(getInitialLocale);
+  const [activeView, setActiveView] = useState<"chat" | "discussion">("chat");
   const [conversations, setConversations] = useState<ConversationSummary[]>(readConversations);
   const [activeId, setActiveId] = useState(() => readActiveConversation(readConversations()));
   const [history, setHistory] = useState<ConversationMessage[]>([]);
@@ -219,6 +221,14 @@ export function App() {
         </div>
       </div>
       <div className="topbar-tools">
+        <div className="view-switch" role="group" aria-label={locale === "bg" ? "Раздел" : "View"}>
+          <button type="button" className={activeView === "chat" ? "is-active" : ""}
+            aria-pressed={activeView === "chat"} disabled={busy || deletingId !== null}
+            onClick={() => setActiveView("chat")}>{locale === "bg" ? "Чат" : "Chat"}</button>
+          <button type="button" className={activeView === "discussion" ? "is-active" : ""}
+            aria-pressed={activeView === "discussion"} disabled={busy || deletingId !== null}
+            onClick={() => setActiveView("discussion")}>{locale === "bg" ? "AI дискусии" : "AI discussions"}</button>
+        </div>
         <div className={`connection-status ${modelReady ? "is-ready" : "is-offline"}`} role="status">
           <span className="status-dot" aria-hidden="true" />
           <span>{modelReady ? t.ready : loading ? t.connecting : t.offline}</span>
@@ -267,7 +277,10 @@ export function App() {
       {sidebarOpen && <button className="sidebar-backdrop" aria-label={t.conversations}
         type="button" onClick={() => setSidebarOpen(false)} />}
 
-      <section className="chat-panel" aria-label={t.conversations}>
+      {activeView === "discussion"
+        ? <DiscussionRoom adapter={model} modelReady={modelReady} webSearchMode={webSearchMode}
+            locale={locale} onBack={() => setActiveView("chat")} />
+        : <section className="chat-panel" aria-label={t.conversations}>
         <div className="chat-scroll" ref={scrollRef}>
           {historyLoading ? <div className="chat-loading" aria-live="polite">{t.connecting}</div> :
             history.length === 0 && !busy ? <div className="empty-state">
@@ -348,7 +361,7 @@ export function App() {
             <p className="composer-hint">{t.promptHint}</p>
           </div>
         </div>
-      </section>
+      </section>}
     </div>
   </main>;
 }
