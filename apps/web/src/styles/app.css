@@ -49,7 +49,24 @@ button:focus-visible, textarea:focus-visible, select:focus-visible {
 }
 .brand-copy { min-width: 0; }
 .brand-copy h1 { font-size: 16px; letter-spacing: -.025em; margin: 0; font-weight: 800; }
-.brand-copy p { color: #96a3c0; margin: 4px 0 0; font-size: 11px; }
+.brand-copy .developer-credit {
+  display: block;
+  width: fit-content;
+  margin-top: 2px;
+  color: #96a3c0;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .025em;
+  line-height: 1.2;
+  text-decoration: none;
+  transition: color .18s ease, text-decoration-color .18s ease;
+}
+.brand-copy .developer-credit:hover, .brand-copy .developer-credit:focus-visible {
+  color: #b2a2ff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.brand-copy p { color: #96a3c0; margin: 2px 0 0; font-size: 11px; }
 .mobile-menu { display: none; }
 .topbar-tools { display: flex; align-items: center; gap: 18px; }
 .connection-status { color: #aab8d3; display: flex; align-items: center; gap: 8px; font-size: 12px; white-space: nowrap; }
