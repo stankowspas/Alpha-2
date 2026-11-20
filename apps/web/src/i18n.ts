@@ -67,6 +67,9 @@ export interface UiMessages {
   webOff: string;
   webSources: string;
   webUnavailable: string;
+  deleteChat: string;
+  confirmDeleteChat: string;
+  deleteChatError: string;
 }
 
 export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
@@ -96,7 +99,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webOn: "Винаги",
     webOff: "Изключено",
     webSources: "Уеб източници",
-    webUnavailable: "Интернет търсенето не успя. Отговорът не е проверен с актуални източници."
+    webUnavailable: "Интернет търсенето не успя. Отговорът не е проверен с актуални източници.",
+    deleteChat: "Изтрий разговор",
+    confirmDeleteChat: "Да изтрия ли този разговор и всички съобщения в него? Действието е необратимо.",
+    deleteChatError: "Неуспешно изтриване на разговора. Опитай отново."
   },
   en: {
     newChat: "New chat",
@@ -124,7 +130,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webOn: "Always",
     webOff: "Off",
     webSources: "Web sources",
-    webUnavailable: "Web search failed. This answer was not checked against current sources."
+    webUnavailable: "Web search failed. This answer was not checked against current sources.",
+    deleteChat: "Delete chat",
+    confirmDeleteChat: "Delete this chat and all its messages? This cannot be undone.",
+    deleteChatError: "Could not delete the chat. Please try again."
   },
   sr: {
     newChat: "Нови разговор",
@@ -152,7 +161,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webOn: "Увек",
     webOff: "Искључено",
     webSources: "Веб извори",
-    webUnavailable: "Претрага није успела. Одговор није проверен помоћу актуелних извора."
+    webUnavailable: "Претрага није успела. Одговор није проверен помоћу актуелних извора.",
+    deleteChat: "Избриши разговор",
+    confirmDeleteChat: "Обрисати овај разговор и све поруке? Ова радња се не може опозвати.",
+    deleteChatError: "Брисање разговора није успело. Покушај поново."
   },
   de: {
     newChat: "Neuer Chat",
@@ -180,7 +192,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webOn: "Immer",
     webOff: "Aus",
     webSources: "Webquellen",
-    webUnavailable: "Websuche fehlgeschlagen. Die Antwort wurde nicht anhand aktueller Quellen geprüft."
+    webUnavailable: "Websuche fehlgeschlagen. Die Antwort wurde nicht anhand aktueller Quellen geprüft.",
+    deleteChat: "Chat löschen",
+    confirmDeleteChat: "Diesen Chat mit allen Nachrichten endgültig löschen? Dies kann nicht rückgängig gemacht werden.",
+    deleteChatError: "Chat konnte nicht gelöscht werden. Bitte erneut versuchen."
   },
   fr: {
     newChat: "Nouvelle discussion",
@@ -208,7 +223,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webOn: "Toujours",
     webOff: "Désactivée",
     webSources: "Sources Web",
-    webUnavailable: "La recherche a échoué. Cette réponse n'a pas été vérifiée avec des sources récentes."
+    webUnavailable: "La recherche a échoué. Cette réponse n'a pas été vérifiée avec des sources récentes.",
+    deleteChat: "Supprimer la conversation",
+    confirmDeleteChat: "Supprimer cette conversation et tous ses messages ? Cette action est irréversible.",
+    deleteChatError: "Impossible de supprimer la conversation. Réessayez."
   },
   es: {
     newChat: "Nuevo chat",
@@ -236,7 +254,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webOn: "Siempre",
     webOff: "Desactivada",
     webSources: "Fuentes web",
-    webUnavailable: "La búsqueda ha fallado. La respuesta no se verificó con fuentes actuales."
+    webUnavailable: "La búsqueda ha fallado. La respuesta no se verificó con fuentes actuales.",
+    deleteChat: "Eliminar chat",
+    confirmDeleteChat: "¿Eliminar este chat y todos sus mensajes? Esta acción no se puede deshacer.",
+    deleteChatError: "No se pudo eliminar el chat. Inténtalo de nuevo."
   },
   it: {
     newChat: "Nuova chat",
@@ -264,7 +285,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webOn: "Sempre",
     webOff: "Disattivata",
     webSources: "Fonti web",
-    webUnavailable: "Ricerca non riuscita. Risposta non verificata con fonti aggiornate."
+    webUnavailable: "Ricerca non riuscita. Risposta non verificata con fonti aggiornate.",
+    deleteChat: "Elimina chat",
+    confirmDeleteChat: "Eliminare questa chat e tutti i messaggi? L'azione è irreversibile.",
+    deleteChatError: "Impossibile eliminare la chat. Riprova."
   },
   pt: {
     newChat: "Nova conversa",
@@ -292,7 +316,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webOn: "Sempre",
     webOff: "Desativada",
     webSources: "Fontes web",
-    webUnavailable: "A pesquisa falhou. A resposta não foi verificada com fontes atuais."
+    webUnavailable: "A pesquisa falhou. A resposta não foi verificada com fontes atuais.",
+    deleteChat: "Eliminar conversa",
+    confirmDeleteChat: "Eliminar esta conversa e todas as mensagens? Esta ação não pode ser desfeita.",
+    deleteChatError: "Não foi possível eliminar a conversa. Tenta novamente."
   },
   ro: {
     newChat: "Conversație nouă",
@@ -320,7 +347,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webOn: "Întotdeauna",
     webOff: "Dezactivată",
     webSources: "Surse web",
-    webUnavailable: "Căutarea a eșuat. Răspunsul nu a fost verificat cu surse actuale."
+    webUnavailable: "Căutarea a eșuat. Răspunsul nu a fost verificat cu surse actuale.",
+    deleteChat: "Șterge conversația",
+    confirmDeleteChat: "Ștergi această conversație și toate mesajele? Acțiunea este ireversibilă.",
+    deleteChatError: "Conversația nu a putut fi ștearsă. Încearcă din nou."
   },
   el: {
     newChat: "Νέα συνομιλία",
@@ -348,7 +378,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webOn: "Πάντα",
     webOff: "Απενεργοποίηση",
     webSources: "Πηγές ιστού",
-    webUnavailable: "Η αναζήτηση απέτυχε. Η απάντηση δεν επαληθεύτηκε από ενημερωμένες πηγές."
+    webUnavailable: "Η αναζήτηση απέτυχε. Η απάντηση δεν επαληθεύτηκε από ενημερωμένες πηγές.",
+    deleteChat: "Διαγραφή συνομιλίας",
+    confirmDeleteChat: "Να διαγραφεί η συνομιλία και όλα τα μηνύματα; Η ενέργεια δεν αναιρείται.",
+    deleteChatError: "Δεν ήταν δυνατή η διαγραφή. Δοκιμάστε ξανά."
   },
   tr: {
     newChat: "Yeni sohbet",
@@ -376,7 +409,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webOn: "Her zaman",
     webOff: "Kapalı",
     webSources: "Web kaynakları",
-    webUnavailable: "Arama başarısız oldu. Yanıt güncel kaynaklarla doğrulanmadı."
+    webUnavailable: "Arama başarısız oldu. Yanıt güncel kaynaklarla doğrulanmadı.",
+    deleteChat: "Sohbeti sil",
+    confirmDeleteChat: "Bu sohbet ve tüm mesajları silinsin mi? Bu işlem geri alınamaz.",
+    deleteChatError: "Sohbet silinemedi. Tekrar deneyin."
   },
   ru: {
     newChat: "Новый чат",
@@ -404,7 +440,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webOn: "Всегда",
     webOff: "Выключен",
     webSources: "Веб-источники",
-    webUnavailable: "Поиск не удался. Ответ не проверен по актуальным источникам."
+    webUnavailable: "Поиск не удался. Ответ не проверен по актуальным источникам.",
+    deleteChat: "Удалить чат",
+    confirmDeleteChat: "Удалить этот чат и все сообщения? Это действие нельзя отменить.",
+    deleteChatError: "Не удалось удалить чат. Повторите попытку."
   },
   uk: {
     newChat: "Новий чат",
@@ -432,7 +471,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webOn: "Завжди",
     webOff: "Вимкнено",
     webSources: "Вебджерела",
-    webUnavailable: "Пошук не вдався. Відповідь не перевірена за актуальними джерелами."
+    webUnavailable: "Пошук не вдався. Відповідь не перевірена за актуальними джерелами.",
+    deleteChat: "Видалити чат",
+    confirmDeleteChat: "Видалити цей чат і всі повідомлення? Цю дію неможливо скасувати.",
+    deleteChatError: "Не вдалося видалити чат. Спробуйте ще раз."
   },
   pl: {
     newChat: "Nowy czat",
@@ -460,7 +502,10 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webOn: "Zawsze",
     webOff: "Wyłączone",
     webSources: "Źródła internetowe",
-    webUnavailable: "Wyszukiwanie nie powiodło się. Odpowiedź nie została zweryfikowana."
+    webUnavailable: "Wyszukiwanie nie powiodło się. Odpowiedź nie została zweryfikowana.",
+    deleteChat: "Usuń czat",
+    confirmDeleteChat: "Usunąć ten czat i wszystkie wiadomości? Tej operacji nie można cofnąć.",
+    deleteChatError: "Nie udało się usunąć czatu. Spróbuj ponownie."
   },
   nl: {
     newChat: "Nieuwe chat",
@@ -488,6 +533,9 @@ export const UI_MESSAGES: Record<UiLocale, UiMessages> = {
     webOn: "Altijd",
     webOff: "Uit",
     webSources: "Webbronnen",
-    webUnavailable: "Zoeken mislukt. Het antwoord is niet gecontroleerd met actuele bronnen."
+    webUnavailable: "Zoeken mislukt. Het antwoord is niet gecontroleerd met actuele bronnen.",
+    deleteChat: "Chat verwijderen",
+    confirmDeleteChat: "Deze chat en alle berichten definitief verwijderen? Dit kan niet ongedaan worden gemaakt.",
+    deleteChatError: "Kan de chat niet verwijderen. Probeer het opnieuw."
   }
 };
