@@ -35,6 +35,8 @@ export interface DiscussionSession {
   entries: DiscussionEntry[];
   createdAt: string;
   error?: string;
+  // Quota-limited models are skipped for the rest of this discussion, not retried automatically.
+  limitedModels?: AiModelId[];
 }
 
 export const DISCUSSION_MODE_NAMES: Record<DiscussionMode, string> = {
@@ -58,9 +60,42 @@ export function summarySpeaker(mode: DiscussionMode, master: AiModelId): AiModel
   return mode === "master" ? master : "gemma4";
 }
 
+/** Recognize an explicit provider rate/quota rejection, not generic network/server errors. */
+export function isProviderQuotaError(cause: unknown): boolean {
+  const message = (cause instanceof Error ? cause.message : String(cause)).toLowerCase();
+  return /\\b429\\b|rate[ _-]?limit|too many requests|quota|resource_exhausted|квот|лимит.{0,45}заявк|заявк.{0,45}лимит/i.test(message);
+}
+
+export function activeDiscussionModels(
+  session: DiscussionSession,
+  availableModels: Record<AiModelId, boolean>,
+): AiModelId[] {
+  return DISCUSSION_PARTICIPANTS.filter(id => availableModels[id] && !(session.limitedModels || []).includes(id));
+}
+
+/** Prefer the usual moderator or Master, then an available remaining participant. */
+export function availableSummarySpeaker(
+  session: DiscussionSession,
+  availableModels: Record<AiModelId, boolean>,
+): AiModelId | undefined {
+  const active = activeDiscussionModels(session, availableModels);
+  const preferred = summarySpeaker(session.mode, session.master);
+  return active.includes(preferred) ? preferred : active[0];
+}
+
+export function markModelQuotaLimited(session: DiscussionSession, modelId: AiModelId): DiscussionSession {
+  return {
+    ...session,
+    limitedModels: [...new Set([...(session.limitedModels || []), modelId])],
+  };
+}
+
 function roleFor(session: DiscussionSession, modelId: AiModelId, slot: number): string {
   const name = MODEL_LABELS[modelId];
   if (session.mode === "master") {
+    if ((session.limitedModels || []).includes(session.master) && modelId !== session.master) {
+      return `Master (${MODEL_LABELS[session.master]}) е отпаднал поради квота. Продължи с независим анализ и провери наличните аргументи, без да твърдиш, че са ти възложени задачи.`;
+    }
     if (modelId === session.master && slot === 0) {
       return `Ти си MASTER (${name}). Разпредели две конкретни, различни задачи на останалите два модела, като посочиш имената им. В следващи кръгове насочвай работата според получените резултати.`;
     }
@@ -152,6 +187,7 @@ export function createDiscussionSession(
     speakerIndex: 0,
     status: "paused",
     entries: [],
+    limitedModels: [],
     createdAt: new Date().toISOString(),
   };
 }
