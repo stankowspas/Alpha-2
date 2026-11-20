@@ -259,7 +259,7 @@ export function DiscussionRoom({ adapter, modelReady, webSearchMode, locale, onB
           continue;
         }
 
-        const speaker = speakers[current.speakerIndex];
+        const speaker: AiModelId = speakers[current.speakerIndex];
         if (!adapter.availableModels[speaker] || (current.limitedModels || []).includes(speaker)) {
           current = { ...current, speakerIndex: current.speakerIndex + 1 };
           publish(current);
