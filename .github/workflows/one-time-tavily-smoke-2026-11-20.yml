@@ -17,13 +17,17 @@ jobs:
           base="https://alpha2-cloud-ai-test.stankowspas.workers.dev"
           def request(path, data=None):
               body=json.dumps(data,ensure_ascii=False).encode("utf-8") if data is not None else None
-              headers={"Content-Type":"application/json"} if data is not None else {}
+              headers={"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/131.0.0.0","Accept":"application/json","Origin":"https://stankowspas.github.io"}
+              if data is not None: headers["Content-Type"]="application/json"
               req=urllib.request.Request(base+path,data=body,headers=headers,method="POST" if data is not None else "GET")
               try:
                   with urllib.request.urlopen(req, timeout=105) as r:
                       return r.status, json.load(r)
               except urllib.error.HTTPError as e:
-                  try: payload=json.load(e)
+                  try:
+                      raw=e.read(1200).decode("utf-8","replace")
+                      print("HTTP error body (first 300 characters):",raw[:300])
+                      payload=json.loads(raw)
                   except Exception: payload={"error":"non-JSON HTTP error"}
                   return e.code,payload
           status,data=request("/api/status")
