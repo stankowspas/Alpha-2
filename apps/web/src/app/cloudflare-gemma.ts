@@ -11,6 +11,19 @@ export const MODEL_LABELS: Record<AiModelId, string> = {
 export const MODEL_PROVIDERS: Record<AiModelId, string> = {
   gemma4: "Cloudflare AI", "gpt-oss-120b": "Groq Free", "gemini-flash-lite": "Google Free"
 };
+// The Worker owns the system prompt and web retrieval. This is only a client-side
+// clarification for remote models; the user's original question is kept first so
+// the Worker can still use it as the Tavily search query.
+const WEB_SEARCH_AWARENESS =
+  "\n\n[Контекст от Alpha 2: Приложението може да предостави УЕБ ИЗТОЧНИЦИ чрез Tavily. Когато са приложени, използвай ги и не твърди, че нямаш достъп до предоставените данни. Това не означава, че имаш собствен браузър. Ако източници липсват, не твърди, че си извършил справка.]";
+
+export function withWebSearchAwareness(messages: ChatLine[], searchAvailable: boolean, webSearch: WebSearchMode, selectedModel: AiModelId): ChatLine[] {
+  if (!searchAvailable || webSearch === "off" || selectedModel === "gemma4" || messages.at(-1)?.role !== "user") return messages;
+  return messages.map((line, index) => index === messages.length - 1
+    ? { ...line, content: line.content + WEB_SEARCH_AWARENESS }
+    : line);
+}
+
 export interface WebSource { title: string; url: string; publishedAt?: string }
 export interface ChatReply { answer: string; sources: WebSource[]; searchWarning: boolean; modelId: AiModelId }
 
@@ -53,7 +66,7 @@ export class CloudflareGemmaAdapter implements ModelAdapter {
     if (!this.availableModels[selectedModel]) throw new Error("Избраният AI модел още не е конфигуриран.");
     const response = await fetch(`${CLOUDFLARE_ENDPOINT}/api/chat`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages, webSearch, model: selectedModel }), cache: "no-store", signal,
+      body: JSON.stringify({ messages: withWebSearchAwareness(messages, this.searchAvailable, webSearch, selectedModel), webSearch, model: selectedModel }), cache: "no-store", signal,
     });
     let data: { answer?: string; error?: string; webSearch?: { sources?: WebSource[]; used?: boolean; warning?: string } };
     try { data = await response.json(); } catch { throw new Error(`Невалиден отговор от Cloudflare (HTTP ${response.status}).`); }
