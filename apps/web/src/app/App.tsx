@@ -203,7 +203,6 @@ export function App() {
           <h1>{PRODUCT_BRANDING.version}</h1>
           <a className="developer-credit" href="https://stankowspas.github.io/"
             title="Developer website">Developer website</a>
-          <p>{t.tagline}</p>
         </div>
       </div>
       <div className="topbar-tools">
