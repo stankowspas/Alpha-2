@@ -3,6 +3,11 @@ import { MODEL_LABELS, type AiModelId, type ChatLine, type WebSource } from "./c
 export type DiscussionMode = "discussion" | "debate" | "expert" | "review" | "master";
 export type ParticipationMode = "autonomous" | "participatory";
 export type DiscussionStatus = "running" | "paused" | "waiting" | "finished" | "stopped" | "error";
+
+// A stopped discussion is not deleted: it can be resumed explicitly by its owner.
+export function canResumeDiscussion(status: DiscussionStatus): boolean {
+  return status !== "finished";
+}
 export type DiscussionAuthor = "user" | "model";
 
 export interface DiscussionEntry {
