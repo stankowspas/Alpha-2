@@ -1,12 +1,13 @@
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import { PRODUCT_BRANDING } from "@alpha/branding";
 import { listConversationMessages, saveConversationMessage, type ConversationMessage } from "@alpha/memory";
-import { CloudflareGemmaAdapter, type ChatLine } from "./cloudflare-gemma";
+import { CloudflareGemmaAdapter, type ChatLine, type WebSearchMode } from "./cloudflare-gemma";
 import { getInitialLocale, persistLocale, UI_LANGUAGES, UI_MESSAGES, type UiLocale } from "../i18n";
 
 const LEGACY_CONVERSATION = "alpha-default";
 const CONVERSATIONS_KEY = "alpha2-conversation-list-v1";
 const ACTIVE_CONVERSATION_KEY = "alpha2-active-conversation-v1";
+const WEB_SEARCH_KEY = "alpha2-web-search-mode-v1";
 const model = new CloudflareGemmaAdapter();
 
 interface ConversationSummary { id: string; title: string }
@@ -57,12 +58,22 @@ export function App() {
   const [busy, setBusy] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [message, setMessage] = useState("");
+  const [webSearchMode, setWebSearchMode] = useState<WebSearchMode>(() => {
+    try {
+      const saved = localStorage.getItem(WEB_SEARCH_KEY);
+      if (saved === "auto" || saved === "on" || saved === "off") return saved;
+    } catch { /* storage may be unavailable */ }
+    return "auto";
+  });
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const t = UI_MESSAGES[locale];
 
   useEffect(() => { persistLocale(locale); }, [locale]);
+  useEffect(() => {
+    try { localStorage.setItem(WEB_SEARCH_KEY, webSearchMode); } catch { /* non-fatal */ }
+  }, [webSearchMode]);
   useEffect(() => {
     try {
       localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(conversations));
@@ -130,11 +141,11 @@ export function App() {
     setError(null);
 
     try {
-      const result = await model.generateConversation(recentMessages(history, prompt));
+      const result = await model.generateConversationWithSources(recentMessages(history, prompt), model.searchAvailable ? webSearchMode : "off");
       const now = Date.now();
       const entries: ConversationMessage[] = [
         { id: crypto.randomUUID(), conversationId: activeId, role: "user", content: prompt, createdAt: new Date(now).toISOString() },
-        { id: crypto.randomUUID(), conversationId: activeId, role: "assistant", content: result, createdAt: new Date(now + 1).toISOString() }
+        { id: crypto.randomUUID(), conversationId: activeId, role: "assistant", content: result.answer, sources: result.sources, searchWarning: result.searchWarning, createdAt: new Date(now + 1).toISOString() }
       ];
       setHistory(previous => [...previous, ...entries]);
       if (history.length === 0) {
@@ -224,6 +235,18 @@ export function App() {
               <div className="message-body">
                 <div className="message-author">{item.role === "user" ? t.you : t.assistant}</div>
                 <div className="message-bubble">{item.content}</div>
+                {item.role === "assistant" && Boolean(item.sources?.length) && <div className="web-sources">
+                  <strong>{t.webSources}</strong>
+                  {item.sources?.filter(source => {
+                    try {
+                      const url = new URL(source.url);
+                      return ["https:", "http:"].includes(url.protocol) && !url.username && !url.password;
+                    } catch { return false; }
+                  }).map((source, index) => <a key={source.url} href={source.url} target="_blank" rel="noopener noreferrer">
+                    [{index + 1}] {source.title}
+                  </a>)}
+                </div>}
+                {item.role === "assistant" && item.searchWarning && <p className="web-warning">{t.webUnavailable}</p>}
               </div>
             </article>)}
             {busy && <div className="pending-response" aria-live="polite">
@@ -255,7 +278,18 @@ export function App() {
             <button className="send-button" type="submit" disabled={busy || !modelReady || historyLoading || !message.trim()}
               aria-label={t.send}><span aria-hidden="true">➤</span><span className="send-label">{t.send}</span></button>
           </form>
-          <p className="composer-hint">{t.promptHint}</p>
+          <div className="composer-bottom">
+            {modelReady && model.searchAvailable && <label className="web-search-setting" htmlFor="web-search-mode">
+              <span aria-hidden="true">◎</span> {t.webSearchLabel}
+              <select id="web-search-mode" value={webSearchMode}
+                onChange={event => setWebSearchMode(event.target.value as WebSearchMode)} disabled={busy}>
+                <option value="auto">{t.webAuto}</option>
+                <option value="on">{t.webOn}</option>
+                <option value="off">{t.webOff}</option>
+              </select>
+            </label>}
+            <p className="composer-hint">{t.promptHint}</p>
+          </div>
         </div>
       </section>
     </div>
